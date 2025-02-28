@@ -20,7 +20,7 @@ st.markdown("CSV 파일을 업로드하면 AI가 자동으로 데이터를 분�
 
 # 파일 업로드
 uploaded_file = st.file_uploader("CSV 파일을 선택하세요", type="csv")
-python
+
 # 함수: OpenAI API를 사용한 데이터 분석
 def analyze_data_with_ai(df_info):
     if not openai_api_key:
@@ -64,7 +64,7 @@ def analyze_data_with_ai(df_info):
     except Exception as e:
         st.error(f"OpenAI API 호출 중 오류가 발생했습니다: {str(e)}")
         return None
-      python
+
 # 데이터가 업로드되면 실행
 if uploaded_file is not None:
     # 데이터 로드
