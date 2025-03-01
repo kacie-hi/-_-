@@ -1191,7 +1191,7 @@ if uploaded_file is not None:
         
         elif metric_type == "시계열 분석":
             if df_structure["datetime_cols"]:
-col1, col2 = st.columns(2)
+                col1, col2 = st.columns(2)
                 
                 with col1:
                     date_col = st.selectbox("날짜 열", df_structure["datetime_cols"])
