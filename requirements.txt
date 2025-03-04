@@ -1,5 +1,9 @@
 streamlit
-openai
 pandas
+numpy
 matplotlib
+seaborn
 plotly
+openai
+pillow
+streamlit-option-menu
