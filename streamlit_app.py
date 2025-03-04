@@ -18,654 +18,6 @@ import uuid
 from PIL import Image
 from streamlit_option_menu import option_menu
 
-# 페이지 설정
-st.set_page_config(
-    page_title="CSV 데이터 분석 대시보드",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# CSS 스타일 적용
-st.markdown("""
-<style>
-    /* 전체 폰트 및 색상 */
-    .main {
-        font-family: 'Arial', sans-serif;
-        color: #505050;
-    }
-    
-    /* 헤더 스타일 */
-    .title-container {
-        background-color: #1a3a5f;
-        padding: 1rem;
-        border-radius: 5px;
-        color: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-    
-    /* 카드 스타일 */
-    .card {
-        background-color: white;
-        border-radius: 5px;
-        box-shadow: 0 0 5px rgba(0,0,0,0.1);
-        padding: 1rem;
-        margin-bottom: 20px;
-    }
-    
-    .card-header {
-        border-top: 8px solid #1a3a5f;
-        border-radius: 5px 5px 0 0;
-    }
-    
-    .card-warning-header {
-        border-top: 8px solid #f0ad4e;
-        border-radius: 5px 5px 0 0;
-    }
-    
-    /* 인사이트 상자 스타일 */
-    .insight-box {
-        background-color: #f1f5f9;
-        border-radius: 5px;
-        padding: 0.8rem;
-        margin-top: 10px;
-        border-left: 4px solid #1a3a5f;
-    }
-    
-    .warning-insight {
-        border-left: 4px solid #f0ad4e;
-    }
-    
-    /* 지표 스타일 */
-    .metric-container {
-        text-align: center;
-        padding: 1rem;
-        border-radius: 5px;
-        background-color: white;
-        box-shadow: 0 0 5px rgba(0,0,0,0.1);
-        min-height: 150px;
-    }
-    
-    .metric-title {
-        font-size: 1rem;
-        color: #505050;
-        margin-bottom: 1rem;
-    }
-    
-    .metric-value {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #1a3a5f;
-        margin-bottom: 0.5rem;
-    }
-    
-    .metric-change {
-        font-size: 0.9rem;
-        color: #28a745;
-    }
-    
-    .metric-change-negative {
-        color: #dc3545;
-    }
-    
-    /* 팝업 스타일 */
-    .popup-container {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background-color: white;
-        border-radius: 5px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.3);
-        padding: 20px;
-        z-index: 1000;
-        max-width: 90%;
-        max-height: 90%;
-        overflow-y: auto;
-        display: none;
-    }
-    
-    .popup-header {
-        background-color: #1a3a5f;
-        color: white;
-        padding: 1rem;
-        border-radius: 5px 5px 0 0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .close-btn {
-        cursor: pointer;
-        font-size: 1.5rem;
-        color: white;
-    }
-    
-    /* 필터 컨테이너 */
-    .filter-container {
-        background-color: white;
-        border-radius: 5px;
-        box-shadow: 0 0 5px rgba(0,0,0,0.1);
-        padding: 0.5rem;
-        margin-bottom: 20px;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-    
-    .filter-item {
-        background-color: #f1f5f9;
-        border-radius: 3px;
-        border: 1px solid #d0d0d0;
-        padding: 5px 10px;
-        margin: 5px;
-        font-size: 0.8rem;
-    }
-    
-    /* 섹션 스타일 */
-    .section-title {
-        font-size: 1.2rem;
-        font-weight: bold;
-        color: #1a3a5f;
-        margin-bottom: 1rem;
-    }
-    
-    /* 인사이트 점 스타일 */
-    .insight-dot {
-        width: 4px;
-        height: 15px;
-        background-color: #1a3a5f;
-        margin-right: 10px;
-        display: inline-block;
-    }
-    
-    .warning-dot {
-        background-color: #f0ad4e;
-    }
-    
-    /* 로딩 스타일 */
-    .loading {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100px;
-    }
-    
-    /* 테이블 스타일 */
-    .styled-table {
-        border-collapse: collapse;
-        width: 100%;
-        border-radius: 5px;
-        overflow: hidden;
-    }
-    
-    .styled-table th {
-        background-color: #1a3a5f;
-        color: white;
-        padding: 10px;
-        text-align: left;
-    }
-    
-    .styled-table td {
-        padding: 10px;
-        border-bottom: 1px solid #f0f0f0;
-    }
-    
-    .styled-table tr:nth-child(even) {
-        background-color: #f8f9fa;
-    }
-    
-    /* 팝업 스타일 JS */
-    .stButton>button {
-        width: 100%;
-    }
-    
-    /* 세그먼트 카드 스타일 */
-    .segment-card {
-        background-color: #f1f5f9;
-        border-radius: 5px;
-        border: 1px solid #d0d0d0;
-        min-height: 150px;
-    }
-    
-    .segment-header {
-        border-radius: 5px 5px 0 0;
-        padding: 0.5rem;
-        text-align: center;
-        color: white;
-        font-weight: bold;
-    }
-    
-    .segment-body {
-        padding: 1rem;
-    }
-</style>
-""", unsafe_allow_html=True)
-# 세션 상태 초기화
-if 'api_key' not in st.session_state:
-    st.session_state.api_key = ""
-if 'model' not in st.session_state:
-    st.session_state.model = "gpt-4"
-if 'data' not in st.session_state:
-    st.session_state.data = None
-if 'analysis_complete' not in st.session_state:
-    st.session_state.analysis_complete = False
-if 'summary' not in st.session_state:
-    st.session_state.summary = None
-if 'insights' not in st.session_state:
-    st.session_state.insights = None
-if 'charts' not in st.session_state:
-    st.session_state.charts = None
-if 'popup_content' not in st.session_state:
-    st.session_state.popup_content = {}
-if 'last_updated' not in st.session_state:
-    st.session_state.last_updated = datetime.datetime.now().strftime("%Y-%m-%d")
-if 'show_popup' not in st.session_state:
-    st.session_state.show_popup = False
-if 'popup_title' not in st.session_state:
-    st.session_state.popup_title = ""
-if 'popup_content_html' not in st.session_state:
-    st.session_state.popup_content_html = ""
-
-# 헤더 표시
-st.markdown("""
-<div class="title-container">
-    <h2>CSV 데이터 분석 대시보드</h2>
-    <span>최종 업데이트: {}</span>
-</div>
-""".format(st.session_state.last_updated), unsafe_allow_html=True)
-# 사이드바 설정
-with st.sidebar:
-    st.header("설정")
-    
-    # API 키 입력
-    api_key = st.text_input("OpenAI API 키", value=st.session_state.api_key, type="password")
-    if api_key:
-        st.session_state.api_key = api_key
-    
-    # 모델 선택
-    model_options = {
-        "GPT-4": "gpt-4",
-        "GPT-3.5 Turbo": "gpt-3.5-turbo",
-        "GPT-3.5": "gpt-3.5-turbo-instruct"
-    }
-    
-    selected_model = st.selectbox(
-        "OpenAI 모델 선택",
-        options=list(model_options.keys()),
-        index=0
-    )
-    st.session_state.model = model_options[selected_model]
-    
-    st.markdown("---")
-    
-    # 파일 업로드
-    uploaded_file = st.file_uploader("CSV 파일 업로드", type=['csv'])
-    
-    if uploaded_file is not None:
-        try:
-            # 데이터 로드
-            data = pd.read_csv(uploaded_file)
-            st.session_state.data = data
-            st.success(f"파일 '{uploaded_file.name}'이 업로드되었습니다!")
-            st.write(f"열 {len(data.columns)}개, 행 {len(data)}개")
-            
-            # 간단한 데이터 프리뷰
-            st.write("데이터 미리보기:")
-            st.dataframe(data.head(5))
-            
-            # 분석 시작 버튼
-            if st.button("데이터 분석 시작", key="start_analysis"):
-                if not st.session_state.api_key:
-                    st.error("OpenAI API 키를 입력해주세요!")
-                else:
-                    with st.spinner("데이터를 분석 중입니다... 잠시만 기다려주세요."):
-                        # API 키 설정
-                        openai.api_key = st.session_state.api_key
-                        
-                        # 분석 시작
-                        st.session_state.summary = analyze_data_summary(data)
-                        st.session_state.insights = analyze_data_insights(data)
-                        st.session_state.charts = analyze_data_charts(data)
-                        
-                        # 팝업 콘텐츠 생성
-                        create_popup_contents(data)
-                        
-                        # 분석 완료 표시
-                        st.session_state.analysis_complete = True
-                        st.session_state.last_updated = datetime.datetime.now().strftime("%Y-%m-%d")
-                        
-                        st.success("데이터 분석이 완료되었습니다!")
-                        st.rerun()
-        
-        except Exception as e:
-            st.error(f"파일 처리 중 오류가 발생했습니다: {e}")
-# 메인 페이지 컨텐츠
-if st.session_state.data is not None and st.session_state.analysis_complete:
-    # 필터 섹션
-    st.markdown("""
-    <div class="filter-container">
-        <span style='margin-right: 10px; font-weight: bold;'>필터:</span>
-        <div class="filter-item">날짜: 최근 30일</div>
-        <div class="filter-item">카테고리: 전체</div>
-        <div class="filter-item">지역: 전체</div>
-        <div class="filter-item">고객군: 전체</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # 전체 분석 요약 카드
-    st.markdown("""
-    <div class="card">
-        <h3 class="section-title">데이터 분석 종합 요약</h3>
-        <div>
-    """, unsafe_allow_html=True)
-    
-    if st.session_state.summary:
-        for i, insight in enumerate(st.session_state.summary["insights"]):
-            warning_class = "warning-insight" if insight.get("is_warning", False) else ""
-            dot_class = "warning-dot" if insight.get("is_warning", False) else ""
-            
-            st.markdown(f"""
-            <div class="insight-box {warning_class}">
-                <div class="insight-dot {dot_class}"></div>
-                {insight["text"]}
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # 우측 통계 블록
-        st.markdown("""
-        <div style="background-color: #f1f5f9; border-radius: 3px; border: 1px solid #d0d0d0; padding: 15px; margin-top: 15px;">
-            <h4 style="font-weight: bold; color: #1a3a5f; margin-bottom: 10px;">주요 통계 지표</h4>
-        """, unsafe_allow_html=True)
-        
-        for stat in st.session_state.summary["statistics"]:
-            st.markdown(f"""
-            <p style="margin-bottom: 5px;">{stat["name"]}: {stat["value"]} | {stat.get("additional", "")}</p>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-    
-    # 차트 인사이트 팝업 버튼
-    if st.button("차트 인사이트 보기", key="show_summary_insights"):
-        st.session_state.show_popup = True
-        st.session_state.popup_title = "데이터 분석 종합 요약 상세 보기"
-        st.session_state.popup_content_html = get_popup_content("summary")
-        st.rerun()
-    
-    st.markdown("</div></div>", unsafe_allow_html=True)
-    
-    # 주요 지표 섹션
-    st.markdown("<h3 class='section-title'>주요 지표</h3>", unsafe_allow_html=True)
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    # 주요 지표 카드 표시
-    if st.session_state.summary and "metrics" in st.session_state.summary:
-        metrics = st.session_state.summary["metrics"]
-        
-        for i, (col, metric) in enumerate(zip([col1, col2, col3, col4], metrics)):
-            with col:
-                change_class = "metric-change-negative" if metric.get("change_value", 0) < 0 else "metric-change"
-                change_icon = "↓" if metric.get("change_value", 0) < 0 else "↑"
-                
-                header_class = "card-warning-header" if i == 3 else "card-header"
-                
-                st.markdown(f"""
-                <div class="metric-container {header_class}">
-                    <div class="metric-title">{metric["title"]}</div>
-                    <div class="metric-value">{metric["value"]}</div>
-                    <div class="metric-change {change_class}">{change_icon} {abs(metric["change_value"])}%</div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # 팝업 버튼
-                if st.button("상세 보기", key=f"metric_{i}"):
-                    st.session_state.show_popup = True
-                    st.session_state.popup_title = f"{metric['title']} 상세 분석"
-                    st.session_state.popup_content_html = get_popup_content(f"metric_{i}")
-                    st.rerun()
-# 차트 섹션 1: 매출 추이
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.markdown("<h3 class='section-title'>월별 매출 및 성장률 추이</h3>", unsafe_allow_html=True)
-    
-    if st.session_state.charts and "time_series" in st.session_state.charts:
-        time_series_data = st.session_state.charts["time_series"]
-        
-        # 차트 설명 표시
-        st.markdown(f"""
-        <p style="margin-bottom: 15px;">{time_series_data["description"]}</p>
-        """, unsafe_allow_html=True)
-        
-        # 차트 표시
-        fig = create_time_series_chart(time_series_data)
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # 차트 인사이트 팝업 버튼
-        if st.button("차트 인사이트 보기", key="show_time_series_insights"):
-            st.session_state.show_popup = True
-            st.session_state.popup_title = "월별 매출 추이 분석"
-            st.session_state.popup_content_html = get_popup_content("time_series")
-            st.rerun()
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-    
-    # 텍스트 섹션: 주요 인사이트
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.markdown("<h3 class='section-title'>주요 비즈니스 인사이트</h3>", unsafe_allow_html=True)
-    
-    if st.session_state.insights:
-        for i, insight in enumerate(st.session_state.insights["business_insights"]):
-            warning_class = "warning-insight" if insight.get("is_warning", False) else ""
-            dot_class = "warning-dot" if insight.get("is_warning", False) else ""
-            
-            st.markdown(f"""
-            <div class="insight-box {warning_class}">
-                <div class="insight-dot {dot_class}"></div>
-                {insight["text"]}
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # 차트 인사이트 팝업 버튼
-        if st.button("상세 인사이트 보기", key="show_business_insights"):
-            st.session_state.show_popup = True
-            st.session_state.popup_title = "비즈니스 인사이트 상세 분석"
-            st.session_state.popup_content_html = get_popup_content("business_insights")
-            st.rerun()
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-# 차트 섹션 2: 두 개의 작은 차트
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-        st.markdown("<h3 class='section-title'>제품 카테고리별 매출 비중</h3>", unsafe_allow_html=True)
-        
-        if st.session_state.charts and "category_distribution" in st.session_state.charts:
-            category_data = st.session_state.charts["category_distribution"]
-            
-            # 도넛 차트 표시
-            fig = create_category_chart(category_data)
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # 차트 인사이트 팝업 버튼
-            if st.button("카테고리 분석 보기", key="show_category_insights"):
-                st.session_state.show_popup = True
-                st.session_state.popup_title = "제품 카테고리 분석"
-                st.session_state.popup_content_html = get_popup_content("category_distribution")
-                st.rerun()
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-        st.markdown("<h3 class='section-title'>지역별 판매 분포</h3>", unsafe_allow_html=True)
-        
-        if st.session_state.charts and "region_distribution" in st.session_state.charts:
-            region_data = st.session_state.charts["region_distribution"]
-            
-            # 바 차트 표시
-            fig = create_region_chart(region_data)
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # 분석 텍스트
-            if "analysis" in region_data:
-                st.markdown(f"""
-                <p style="margin-top: 10px;">{region_data["analysis"]}</p>
-                """, unsafe_allow_html=True)
-            
-            # 차트 인사이트 팝업 버튼
-            if st.button("지역 분석 보기", key="show_region_insights"):
-                st.session_state.show_popup = True
-                st.session_state.popup_title = "지역별 판매 분석"
-                st.session_state.popup_content_html = get_popup_content("region_distribution")
-                st.rerun()
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-# 고객 세그먼트 분석
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.markdown("<h3 class='section-title'>고객 세그먼트 분석</h3>", unsafe_allow_html=True)
-    
-    if st.session_state.insights and "customer_segments" in st.session_state.insights:
-        segments = st.session_state.insights["customer_segments"]
-        
-        # 설명 텍스트
-        st.markdown(f"""
-        <p style="margin-bottom: 15px;">{segments["description"]}</p>
-        """, unsafe_allow_html=True)
-        
-        # 세그먼트 카드 표시
-        segment_cols = st.columns(len(segments["segments"]))
-        
-        for i, (col, segment) in enumerate(zip(segment_cols, segments["segments"])):
-            with col:
-                # 색상 선택
-                colors = ["#1a3a5f", "#2c5282", "#3c7cb0", "#f0ad4e"]
-                color = colors[i % len(colors)]
-                
-                st.markdown(f"""
-                <div class="segment-card">
-                    <div class="segment-header" style="background-color: {color};">
-                        {segment["name"]}
-                    </div>
-                    <div class="segment-body">
-                        <p><strong>비율:</strong> {segment["percentage"]}</p>
-                        <p><strong>구매 빈도:</strong> {segment["purchase_frequency"]}</p>
-                        <p><strong>평균 지출:</strong> {segment["avg_spending"]}</p>
-                        <p><strong>특징:</strong> {segment["characteristics"]}</p>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        # 차트 인사이트 팝업 버튼
-        if st.button("세그먼트 분석 상세 보기", key="show_segment_insights"):
-            st.session_state.show_popup = True
-            st.session_state.popup_title = "고객 세그먼트 상세 분석"
-            st.session_state.popup_content_html = get_popup_content("customer_segments")
-            st.rerun()
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-    
-    # 시계열 패턴 분석
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.markdown("<h3 class='section-title'>시계열 패턴 분석</h3>", unsafe_allow_html=True)
-    
-    if st.session_state.insights and "time_patterns" in st.session_state.insights:
-        time_patterns = st.session_state.insights["time_patterns"]
-        
-        # 설명 텍스트
-        st.markdown(f"""
-        <p style="margin-bottom: 15px;">{time_patterns["description"]}</p>
-        """, unsafe_allow_html=True)
-        
-        # 테이블 헤더
-        st.markdown("""
-        <table class="styled-table">
-            <thead>
-                <tr>
-                    <th>패턴 유형</th>
-                    <th>발견 사항</th>
-                    <th>영향도</th>
-                    <th>신뢰도</th>
-                </tr>
-            </thead>
-            <tbody>
-        """, unsafe_allow_html=True)
-        
-        # 테이블 행
-        for pattern in time_patterns["patterns"]:
-            st.markdown(f"""
-            <tr>
-                <td>{pattern["type"]}</td>
-                <td>{pattern["finding"]}</td>
-                <td>{pattern["impact"]}</td>
-                <td>{pattern["confidence"]}</td>
-            </tr>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("""
-            </tbody>
-        </table>
-        """, unsafe_allow_html=True)
-        
-        # 차트 인사이트 팝업 버튼
-        if st.button("시계열 패턴 상세 분석", key="show_time_patterns"):
-            st.session_state.show_popup = True
-            st.session_state.popup_title = "시계열 패턴 상세 분석"
-            st.session_state.popup_content_html = get_popup_content("time_patterns")
-            st.rerun()
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-# 팝업 표시
-    if st.session_state.show_popup:
-        st.markdown(f"""
-        <div id="popup" class="popup-container" style="display: block;">
-            <div class="popup-header">
-                <h3>{st.session_state.popup_title}</h3>
-                <div class="close-btn" onclick="document.getElementById('popup').style.display='none';">×</div>
-            </div>
-            <div style="padding: 20px;">
-                {st.session_state.popup_content_html}
-            </div>
-        </div>
-        
-        <script>
-            // 팝업 닫기 기능
-            const closeBtn = document.querySelector('.close-btn');
-            if (closeBtn) {{
-                closeBtn.addEventListener('click', function() {{
-                    document.getElementById('popup').style.display = 'none';
-                }});
-            }}
-        </script>
-        """, unsafe_allow_html=True)
-        
-        if st.button("팝업 닫기"):
-            st.session_state.show_popup = False
-            st.rerun()
-
-elif st.session_state.data is not None and not st.session_state.analysis_complete:
-    st.info("왼쪽 사이드바에서 '데이터 분석 시작' 버튼을 클릭하여 분석을 시작하세요.")
-else:
-    # 처음 방문 시 안내 메시지
-    st.markdown("""
-    <div class="card">
-        <h3 class="section-title">CSV 데이터 분석 대시보드에 오신 것을 환영합니다!</h3>
-        <p>이 대시보드는 CSV 파일을 업로드하면 OpenAI GPT 모델을 활용하여 자동으로 데이터를 분석하고 시각화합니다.</p>
-        <br>
-        <p><b>시작하려면:</b></p>
-        <ol>
-            <li>왼쪽 사이드바에 OpenAI API 키를 입력하세요</li>
-            <li>사용할 모델을 선택하세요 (기본값: GPT-4)</li>
-            <li>분석할 CSV 파일을 업로드하세요</li>
-            <li>'데이터 분석 시작' 버튼을 클릭하여 분석을 시작하세요</li>
-        </ol>
-        <br>
-        <p>분석이 완료되면 다양한 차트와 인사이트를 확인할 수 있습니다.</p>
-    </div>
-    """, unsafe_allow_html=True)
 # ----- 함수 정의 -----
 
 def analyze_data_summary(data):
@@ -862,6 +214,7 @@ def analyze_data_insights(data):
                 ]
             }
         }
+
 def analyze_data_charts(data):
     """OpenAI API를 사용하여 차트 데이터 생성"""
     try:
@@ -1307,3 +660,655 @@ def create_region_chart(data):
     )
     
     return fig
+
+# 페이지 설정
+st.set_page_config(
+    page_title="CSV 데이터 분석 대시보드",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# CSS 스타일 적용
+st.markdown("""
+<style>
+    /* 전체 폰트 및 색상 */
+    .main {
+        font-family: 'Arial', sans-serif;
+        color: #505050;
+    }
+    
+    /* 헤더 스타일 */
+    .title-container {
+        background-color: #1a3a5f;
+        padding: 1rem;
+        border-radius: 5px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    /* 카드 스타일 */
+    .card {
+        background-color: white;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        padding: 1rem;
+        margin-bottom: 20px;
+    }
+    
+    .card-header {
+        border-top: 8px solid #1a3a5f;
+        border-radius: 5px 5px 0 0;
+    }
+    
+    .card-warning-header {
+        border-top: 8px solid #f0ad4e;
+        border-radius: 5px 5px 0 0;
+    }
+    
+    /* 인사이트 상자 스타일 */
+    .insight-box {
+        background-color: #f1f5f9;
+        border-radius: 5px;
+        padding: 0.8rem;
+        margin-top: 10px;
+        border-left: 4px solid #1a3a5f;
+    }
+    
+    .warning-insight {
+        border-left: 4px solid #f0ad4e;
+    }
+    
+    /* 지표 스타일 */
+    .metric-container {
+        text-align: center;
+        padding: 1rem;
+        border-radius: 5px;
+        background-color: white;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        min-height: 150px;
+    }
+    
+    .metric-title {
+        font-size: 1rem;
+        color: #505050;
+        margin-bottom: 1rem;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #1a3a5f;
+        margin-bottom: 0.5rem;
+    }
+    
+    .metric-change {
+        font-size: 0.9rem;
+        color: #28a745;
+    }
+    
+    .metric-change-negative {
+        color: #dc3545;
+    }
+    
+    /* 팝업 스타일 */
+    .popup-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        padding: 20px;
+        z-index: 1000;
+        max-width: 90%;
+        max-height: 90%;
+        overflow-y: auto;
+        display: none;
+    }
+    
+    .popup-header {
+        background-color: #1a3a5f;
+        color: white;
+        padding: 1rem;
+        border-radius: 5px 5px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .close-btn {
+        cursor: pointer;
+        font-size: 1.5rem;
+        color: white;
+    }
+    
+    /* 필터 컨테이너 */
+    .filter-container {
+        background-color: white;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        padding: 0.5rem;
+        margin-bottom: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .filter-item {
+        background-color: #f1f5f9;
+        border-radius: 3px;
+        border: 1px solid #d0d0d0;
+        padding: 5px 10px;
+        margin: 5px;
+        font-size: 0.8rem;
+    }
+    
+    /* 섹션 스타일 */
+    .section-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #1a3a5f;
+        margin-bottom: 1rem;
+    }
+    
+    /* 인사이트 점 스타일 */
+    .insight-dot {
+        width: 4px;
+        height: 15px;
+        background-color: #1a3a5f;
+        margin-right: 10px;
+        display: inline-block;
+    }
+    
+    .warning-dot {
+        background-color: #f0ad4e;
+    }
+    
+    /* 로딩 스타일 */
+    .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100px;
+    }
+    
+    /* 테이블 스타일 */
+    .styled-table {
+        border-collapse: collapse;
+        width: 100%;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    
+    .styled-table th {
+        background-color: #1a3a5f;
+        color: white;
+        padding: 10px;
+        text-align: left;
+    }
+    
+    .styled-table td {
+        padding: 10px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .styled-table tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    
+    /* 팝업 스타일 JS */
+    .stButton>button {
+        width: 100%;
+    }
+    
+    /* 세그먼트 카드 스타일 */
+    .segment-card {
+        background-color: #f1f5f9;
+        border-radius: 5px;
+        border: 1px solid #d0d0d0;
+        min-height: 150px;
+    }
+    
+    .segment-header {
+        border-radius: 5px 5px 0 0;
+        padding: 0.5rem;
+        text-align: center;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .segment-body {
+        padding: 1rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# 세션 상태 초기화
+if 'api_key' not in st.session_state:
+    st.session_state.api_key = ""
+if 'model' not in st.session_state:
+    st.session_state.model = "gpt-4"
+if 'data' not in st.session_state:
+    st.session_state.data = None
+if 'analysis_complete' not in st.session_state:
+    st.session_state.analysis_complete = False
+if 'summary' not in st.session_state:
+    st.session_state.summary = None
+if 'insights' not in st.session_state:
+    st.session_state.insights = None
+if 'charts' not in st.session_state:
+    st.session_state.charts = None
+if 'popup_content' not in st.session_state:
+    st.session_state.popup_content = {}
+if 'last_updated' not in st.session_state:
+    st.session_state.last_updated = datetime.datetime.now().strftime("%Y-%m-%d")
+if 'show_popup' not in st.session_state:
+    st.session_state.show_popup = False
+if 'popup_title' not in st.session_state:
+    st.session_state.popup_title = ""
+if 'popup_content_html' not in st.session_state:
+    st.session_state.popup_content_html = ""
+
+# 헤더 표시
+st.markdown("""
+<div class="title-container">
+    <h2>CSV 데이터 분석 대시보드</h2>
+    <span>최종 업데이트: {}</span>
+</div>
+""".format(st.session_state.last_updated), unsafe_allow_html=True)
+# 사이드바 설정
+with st.sidebar:
+    st.header("설정")
+    
+    # API 키 입력
+    api_key = st.text_input("OpenAI API 키", value=st.session_state.api_key, type="password")
+    if api_key:
+        st.session_state.api_key = api_key
+    
+    # 모델 선택
+    model_options = {
+        "GPT-4": "gpt-4",
+        "GPT-3.5 Turbo": "gpt-3.5-turbo",
+        "GPT-3.5": "gpt-3.5-turbo-instruct"
+    }
+    
+    selected_model = st.selectbox(
+        "OpenAI 모델 선택",
+        options=list(model_options.keys()),
+        index=0
+    )
+    st.session_state.model = model_options[selected_model]
+    
+    st.markdown("---")
+    
+    # 파일 업로드
+    uploaded_file = st.file_uploader("CSV 파일 업로드", type=['csv'])
+    
+    if uploaded_file is not None:
+        try:
+            # 데이터 로드
+            data = pd.read_csv(uploaded_file)
+            st.session_state.data = data
+            st.success(f"파일 '{uploaded_file.name}'이 업로드되었습니다!")
+            st.write(f"열 {len(data.columns)}개, 행 {len(data)}개")
+            
+            # 간단한 데이터 프리뷰
+            st.write("데이터 미리보기:")
+            st.dataframe(data.head(5))
+            
+            # 분석 시작 버튼
+            if st.button("데이터 분석 시작", key="start_analysis"):
+                if not st.session_state.api_key:
+                    st.error("OpenAI API 키를 입력해주세요!")
+                else:
+                    with st.spinner("데이터를 분석 중입니다... 잠시만 기다려주세요."):
+                        # API 키 설정
+                        openai.api_key = st.session_state.api_key
+                        
+                        # 분석 시작
+                        st.session_state.summary = analyze_data_summary(data)
+                        st.session_state.insights = analyze_data_insights(data)
+                        st.session_state.charts = analyze_data_charts(data)
+                        
+                        # 팝업 콘텐츠 생성
+                        create_popup_contents(data)
+                        
+                        # 분석 완료 표시
+                        st.session_state.analysis_complete = True
+                        st.session_state.last_updated = datetime.datetime.now().strftime("%Y-%m-%d")
+                        
+                        st.success("데이터 분석이 완료되었습니다!")
+                        st.rerun()
+        
+        except Exception as e:
+            st.error(f"파일 처리 중 오류가 발생했습니다: {e}")
+
+# 메인 페이지 컨텐츠
+if st.session_state.data is not None and st.session_state.analysis_complete:
+    # 필터 섹션
+    st.markdown("""
+    <div class="filter-container">
+        <span style='margin-right: 10px; font-weight: bold;'>필터:</span>
+        <div class="filter-item">날짜: 최근 30일</div>
+        <div class="filter-item">카테고리: 전체</div>
+        <div class="filter-item">지역: 전체</div>
+        <div class="filter-item">고객군: 전체</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # 전체 분석 요약 카드
+    st.markdown("""
+    <div class="card">
+        <h3 class="section-title">데이터 분석 종합 요약</h3>
+        <div>
+    """, unsafe_allow_html=True)
+    
+    if st.session_state.summary:
+        for i, insight in enumerate(st.session_state.summary["insights"]):
+            warning_class = "warning-insight" if insight.get("is_warning", False) else ""
+            dot_class = "warning-dot" if insight.get("is_warning", False) else ""
+            
+            st.markdown(f"""
+            <div class="insight-box {warning_class}">
+                <div class="insight-dot {dot_class}"></div>
+                {insight["text"]}
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # 우측 통계 블록
+        st.markdown("""
+        <div style="background-color: #f1f5f9; border-radius: 3px; border: 1px solid #d0d0d0; padding: 15px; margin-top: 15px;">
+            <h4 style="font-weight: bold; color: #1a3a5f; margin-bottom: 10px;">주요 통계 지표</h4>
+        """, unsafe_allow_html=True)
+        
+        for stat in st.session_state.summary["statistics"]:
+            st.markdown(f"""
+            <p style="margin-bottom: 5px;">{stat["name"]}: {stat["value"]} | {stat.get("additional", "")}</p>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    # 차트 인사이트 팝업 버튼
+    if st.button("차트 인사이트 보기", key="show_summary_insights"):
+        st.session_state.show_popup = True
+        st.session_state.popup_title = "데이터 분석 종합 요약 상세 보기"
+        st.session_state.popup_content_html = get_popup_content("summary")
+        st.rerun()
+    
+    st.markdown("</div></div>", unsafe_allow_html=True)
+    
+    # 주요 지표 섹션
+    st.markdown("<h3 class='section-title'>주요 지표</h3>", unsafe_allow_html=True)
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    # 주요 지표 카드 표시
+    if st.session_state.summary and "metrics" in st.session_state.summary:
+        metrics = st.session_state.summary["metrics"]
+        
+        for i, (col, metric) in enumerate(zip([col1, col2, col3, col4], metrics)):
+            with col:
+                change_class = "metric-change-negative" if metric.get("change_value", 0) < 0 else "metric-change"
+                change_icon = "↓" if metric.get("change_value", 0) < 0 else "↑"
+                
+                header_class = "card-warning-header" if i == 3 else "card-header"
+                
+                st.markdown(f"""
+                <div class="metric-container {header_class}">
+                    <div class="metric-title">{metric["title"]}</div>
+                    <div class="metric-value">{metric["value"]}</div>
+                    <div class="metric-change {change_class}">{change_icon} {abs(metric["change_value"])}%</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # 팝업 버튼
+                if st.button("상세 보기", key=f"metric_{i}"):
+                    st.session_state.show_popup = True
+                    st.session_state.popup_title = f"{metric['title']} 상세 분석"
+                    st.session_state.popup_content_html = get_popup_content(f"metric_{i}")
+                    st.rerun()
+# 차트 섹션 1: 매출 추이
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<h3 class='section-title'>월별 매출 및 성장률 추이</h3>", unsafe_allow_html=True)
+    
+    if st.session_state.charts and "time_series" in st.session_state.charts:
+        time_series_data = st.session_state.charts["time_series"]
+        
+        # 차트 설명 표시
+        st.markdown(f"""
+        <p style="margin-bottom: 15px;">{time_series_data["description"]}</p>
+        """, unsafe_allow_html=True)
+        
+        # 차트 표시
+        fig = create_time_series_chart(time_series_data)
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # 차트 인사이트 팝업 버튼
+        if st.button("차트 인사이트 보기", key="show_time_series_insights"):
+            st.session_state.show_popup = True
+            st.session_state.popup_title = "월별 매출 추이 분석"
+            st.session_state.popup_content_html = get_popup_content("time_series")
+            st.rerun()
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # 텍스트 섹션: 주요 인사이트
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<h3 class='section-title'>주요 비즈니스 인사이트</h3>", unsafe_allow_html=True)
+    
+    if st.session_state.insights:
+        for i, insight in enumerate(st.session_state.insights["business_insights"]):
+            warning_class = "warning-insight" if insight.get("is_warning", False) else ""
+            dot_class = "warning-dot" if insight.get("is_warning", False) else ""
+            
+            st.markdown(f"""
+            <div class="insight-box {warning_class}">
+                <div class="insight-dot {dot_class}"></div>
+                {insight["text"]}
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # 차트 인사이트 팝업 버튼
+        if st.button("상세 인사이트 보기", key="show_business_insights"):
+            st.session_state.show_popup = True
+            st.session_state.popup_title = "비즈니스 인사이트 상세 분석"
+            st.session_state.popup_content_html = get_popup_content("business_insights")
+            st.rerun()
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # 차트 섹션 2: 두 개의 작은 차트
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        st.markdown("<h3 class='section-title'>제품 카테고리별 매출 비중</h3>", unsafe_allow_html=True)
+        
+        if st.session_state.charts and "category_distribution" in st.session_state.charts:
+            category_data = st.session_state.charts["category_distribution"]
+            
+            # 도넛 차트 표시
+            fig = create_category_chart(category_data)
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # 차트 인사이트 팝업 버튼
+            if st.button("카테고리 분석 보기", key="show_category_insights"):
+                st.session_state.show_popup = True
+                st.session_state.popup_title = "제품 카테고리 분석"
+                st.session_state.popup_content_html = get_popup_content("category_distribution")
+                st.rerun()
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        st.markdown("<h3 class='section-title'>지역별 판매 분포</h3>", unsafe_allow_html=True)
+        
+        if st.session_state.charts and "region_distribution" in st.session_state.charts:
+            region_data = st.session_state.charts["region_distribution"]
+            
+            # 바 차트 표시
+            fig = create_region_chart(region_data)
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # 분석 텍스트
+            if "analysis" in region_data:
+                st.markdown(f"""
+                <p style="margin-top: 10px;">{region_data["analysis"]}</p>
+                """, unsafe_allow_html=True)
+            
+            # 차트 인사이트 팝업 버튼
+            if st.button("지역 분석 보기", key="show_region_insights"):
+                st.session_state.show_popup = True
+                st.session_state.popup_title = "지역별 판매 분석"
+                st.session_state.popup_content_html = get_popup_content("region_distribution")
+                st.rerun()
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+# 고객 세그먼트 분석
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<h3 class='section-title'>고객 세그먼트 분석</h3>", unsafe_allow_html=True)
+    
+    if st.session_state.insights and "customer_segments" in st.session_state.insights:
+        segments = st.session_state.insights["customer_segments"]
+        
+        # 설명 텍스트
+        st.markdown(f"""
+        <p style="margin-bottom: 15px;">{segments["description"]}</p>
+        """, unsafe_allow_html=True)
+        
+        # 세그먼트 카드 표시
+        segment_cols = st.columns(len(segments["segments"]))
+        
+        for i, (col, segment) in enumerate(zip(segment_cols, segments["segments"])):
+            with col:
+                # 색상 선택
+                colors = ["#1a3a5f", "#2c5282", "#3c7cb0", "#f0ad4e"]
+                color = colors[i % len(colors)]
+                
+                st.markdown(f"""
+                <div class="segment-card">
+                    <div class="segment-header" style="background-color: {color};">
+                        {segment["name"]}
+                    </div>
+                    <div class="segment-body">
+                        <p><strong>비율:</strong> {segment["percentage"]}</p>
+                        <p><strong>구매 빈도:</strong> {segment["purchase_frequency"]}</p>
+                        <p><strong>평균 지출:</strong> {segment["avg_spending"]}</p>
+                        <p><strong>특징:</strong> {segment["characteristics"]}</p>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # 차트 인사이트 팝업 버튼
+        if st.button("세그먼트 분석 상세 보기", key="show_segment_insights"):
+            st.session_state.show_popup = True
+            st.session_state.popup_title = "고객 세그먼트 상세 분석"
+            st.session_state.popup_content_html = get_popup_content("customer_segments")
+            st.rerun()
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # 시계열 패턴 분석
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<h3 class='section-title'>시계열 패턴 분석</h3>", unsafe_allow_html=True)
+    
+    if st.session_state.insights and "time_patterns" in st.session_state.insights:
+        time_patterns = st.session_state.insights["time_patterns"]
+        
+        # 설명 텍스트
+        st.markdown(f"""
+        <p style="margin-bottom: 15px;">{time_patterns["description"]}</p>
+        """, unsafe_allow_html=True)
+        
+        # 테이블 헤더
+        st.markdown("""
+        <table class="styled-table">
+            <thead>
+                <tr>
+                    <th>패턴 유형</th>
+                    <th>발견 사항</th>
+                    <th>영향도</th>
+                    <th>신뢰도</th>
+                </tr>
+            </thead>
+            <tbody>
+        """, unsafe_allow_html=True)
+        
+        # 테이블 행
+        for pattern in time_patterns["patterns"]:
+            st.markdown(f"""
+            <tr>
+                <td>{pattern["type"]}</td>
+                <td>{pattern["finding"]}</td>
+                <td>{pattern["impact"]}</td>
+                <td>{pattern["confidence"]}</td>
+            </tr>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("""
+            </tbody>
+        </table>
+        """, unsafe_allow_html=True)
+        
+        # 차트 인사이트 팝업 버튼
+        if st.button("시계열 패턴 상세 분석", key="show_time_patterns"):
+            st.session_state.show_popup = True
+            st.session_state.popup_title = "시계열 패턴 상세 분석"
+            st.session_state.popup_content_html = get_popup_content("time_patterns")
+            st.rerun()
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+# 팝업 표시
+    if st.session_state.show_popup:
+        st.markdown(f"""
+        <div id="popup" class="popup-container" style="display: block;">
+            <div class="popup-header">
+                <h3>{st.session_state.popup_title}</h3>
+                <div class="close-btn" onclick="document.getElementById('popup').style.display='none';">×</div>
+            </div>
+            <div style="padding: 20px;">
+                {st.session_state.popup_content_html}
+            </div>
+        </div>
+        
+        <script>
+            // 팝업 닫기 기능
+            const closeBtn = document.querySelector('.close-btn');
+            if (closeBtn) {{
+                closeBtn.addEventListener('click', function() {{
+                    document.getElementById('popup').style.display = 'none';
+                }});
+            }}
+        </script>
+        """, unsafe_allow_html=True)
+        
+        if st.button("팝업 닫기"):
+            st.session_state.show_popup = False
+            st.rerun()
+
+elif st.session_state.data is not None and not st.session_state.analysis_complete:
+    st.info("왼쪽 사이드바에서 '데이터 분석 시작' 버튼을 클릭하여 분석을 시작하세요.")
+else:
+    # 처음 방문 시 안내 메시지
+    st.markdown("""
+    <div class="card">
+        <h3 class="section-title">CSV 데이터 분석 대시보드에 오신 것을 환영합니다!</h3>
+        <p>이 대시보드는 CSV 파일을 업로드하면 OpenAI GPT 모델을 활용하여 자동으로 데이터를 분석하고 시각화합니다.</p>
+        <br>
+        <p><b>시작하려면:</b></p>
+        <ol>
+            <li>왼쪽 사이드바에 OpenAI API 키를 입력하세요</li>
+            <li>사용할 모델을 선택하세요 (기본값: GPT-4)</li>
+            <li>분석할 CSV 파일을 업로드하세요</li>
+            <li>'데이터 분석 시작' 버튼을 클릭하여 분석을 시작하세요</li>
+        </ol>
+        <br>
+        <p>분석이 완료되면 다양한 차트와 인사이트를 확인할 수 있습니다.</p>
+    </div>
+    """, unsafe_allow_html=True)
