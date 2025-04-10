@@ -5,7 +5,6 @@ import openai
 from PIL import Image
 from io import BytesIO
 import base64
-import os
 
 # 페이지 기본 설정
 st.set_page_config(
@@ -142,6 +141,9 @@ if 'dialogue' not in st.session_state:
     
 if 'result' not in st.session_state:
     st.session_state.result = None
+    
+if 'api_key' not in st.session_state:
+    st.session_state.api_key = ""
 
 # 예시 대화 설정
 EXAMPLE_DIALOGUE = """야 결혼한다면서? 축하해! 잘됐네
@@ -197,13 +199,10 @@ def reset_app():
     st.session_state.result = None
 
 # OpenAI를 사용한 대화 분석 함수
-def analyze_with_openai(dialogue):
+def analyze_with_openai(dialogue, api_key):
     try:
-        # API 키 가져오기 (Streamlit Secrets 또는 환경 변수에서)
-        api_key = st.secrets.get("openai_api_key", os.environ.get("OPENAI_API_KEY"))
-        
         if not api_key:
-            st.warning("OpenAI API 키가 설정되지 않았습니다. 대체 결과를 사용합니다.")
+            st.warning("OpenAI API 키가 입력되지 않았습니다. 대체 결과를 사용합니다.")
             return get_fallback_result()
         
         client = openai.OpenAI(api_key=api_key)
@@ -284,7 +283,7 @@ def analyze_dialogue():
         time.sleep(2)
         
         # OpenAI로 분석 시도
-        result = analyze_with_openai(st.session_state.dialogue)
+        result = analyze_with_openai(st.session_state.dialogue, st.session_state.api_key)
         
         st.session_state.result = result
         st.session_state.step = 3
@@ -292,6 +291,28 @@ def analyze_dialogue():
 # UI 구현
 def main():
     load_css()
+    
+    # API 키 입력 영역 (사이드바)
+    with st.sidebar:
+        st.markdown("<h3>OpenAI API 설정</h3>", unsafe_allow_html=True)
+        st.session_state.api_key = st.text_input("API 키를 입력하세요", value=st.session_state.api_key, type="password", help="OpenAI API 키를 입력하세요. 입력한 키는 저장되지 않습니다.")
+        st.markdown("<small>API 키는 안전하게 처리되며 저장되지 않습니다.</small>", unsafe_allow_html=True)
+        
+        # API 키 테스트 버튼
+        if st.button("API 키 테스트"):
+            if st.session_state.api_key:
+                try:
+                    client = openai.OpenAI(api_key=st.session_state.api_key)
+                    response = client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": "안녕하세요"}],
+                        max_tokens=5
+                    )
+                    st.success("API 키가 유효합니다!")
+                except Exception as e:
+                    st.error(f"API 키 테스트 실패: {e}")
+            else:
+                st.warning("API 키를 입력해주세요.")
     
     # 상단 그라데이션 바
     st.markdown('<div style="background: linear-gradient(90deg, #8b5cf6, #ec4899); height: 0.5rem; margin: -1rem -5rem 1rem -5rem;"></div>', unsafe_allow_html=True)
@@ -311,6 +332,10 @@ def main():
 def show_intro_page():
     st.markdown('<h1 class="main-title">초유쾌 축의금 분석기</h1>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle">당신의 카톡을 AI가 분석해서 친밀도와 적정 축의금을 알려드립니다!</p>', unsafe_allow_html=True)
+    
+    # API 키 경고
+    if not st.session_state.api_key:
+        st.warning("OpenAI API 키가 설정되지 않았습니다. 사이드바에서 API 키를 입력하거나, API 키 없이 대체 결과를 볼 수 있습니다.")
     
     col1, col2, col3 = st.columns(3)
     
@@ -350,6 +375,10 @@ def show_intro_page():
 def show_input_page():
     st.markdown('<h1 style="font-size: 1.8rem; font-weight: 700; color: #1f2937; margin-bottom: 1rem;">대화 내용 입력</h1>', unsafe_allow_html=True)
     st.markdown('<p style="color: #6b7280; margin-bottom: 1.5rem;">카톡이나 문자 내용을 붙여넣으세요</p>', unsafe_allow_html=True)
+    
+    # API 키 경고
+    if not st.session_state.api_key:
+        st.warning("OpenAI API 키가 설정되지 않았습니다. 사이드바에서 API 키를 입력하거나, API 키 없이 대체 결과를 볼 수 있습니다.")
     
     # 대화 입력 영역
     st.session_state.dialogue = st.text_area(
@@ -436,6 +465,10 @@ def show_result_page():
         </div>
     </div>
     """, unsafe_allow_html=True)
+    
+    # API 키가 없는 경우 알림
+    if not st.session_state.api_key:
+        st.info("OpenAI API 키가 설정되지 않아 예시 분석 결과를 표시합니다. 실제 AI 분석을 위해 사이드바에서 API 키를 설정해주세요.")
     
     # AI 분석 결과
     emoji = result.get('emoji', '😊')
