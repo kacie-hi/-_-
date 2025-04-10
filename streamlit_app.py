@@ -427,7 +427,7 @@ def analyze_dialogue():
         st.session_state.result = result
         st.session_state.step = 3
 
-# 메인 함수 
+# 메인 함수 수정
 def main():
     # CSS 로드
     load_css()
@@ -435,36 +435,42 @@ def main():
     # 상단 그라데이션 바
     st.markdown('<div class="top-gradient-bar"></div>', unsafe_allow_html=True)
     
-    # API 키 입력 영역 (사이드바)
-    with st.sidebar:
-        st.markdown('<div class="sidebar-header">✨ OpenAI API 설정</div>', unsafe_allow_html=True)
-        st.session_state.api_key = st.text_input("API 키를 입력하세요", value=st.session_state.api_key, type="password", help="OpenAI API 키를 입력하세요. 입력한 키는 저장되지 않습니다.")
-        st.caption("API 키는 안전하게 처리되며 저장되지 않습니다.")
+    # 각 단계별 UI 표시
+    st.markdown('<div class="pink-gradient-bg">', unsafe_allow_html=True)
+    
+    # API 키 입력 영역 (메인 화면 상단)
+    st.markdown("### OpenAI API 설정")
+    st.session_state.api_key = st.text_input("API 키를 입력하세요", value=st.session_state.api_key, type="password", help="OpenAI API 키를 입력하세요. 입력한 키는 저장되지 않습니다.")
+    st.caption("API 키는 안전하게 처리되며 저장되지 않습니다.")
+    
+    # API 키 테스트 버튼
+    if st.button("API 키 테스트", key="test_api"):
+        if st.session_state.api_key:
+            try:
+                client = openai.OpenAI(api_key=st.session_state.api_key)
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": "안녕하세요"}],
+                    max_tokens=5
+                )
+                st.success("✅ API 키가 유효합니다!")
+            except Exception as e:
+                st.error(f"❌ API 키 테스트 실패: {e}")
+        else:
+            st.warning("⚠️ API 키를 입력해주세요.")
+    
+    st.markdown("---")
+    
+    if st.session_state.step == 1:
+        show_intro_page()
+    elif st.session_state.step == 2:
+        show_input_page()
+    elif st.session_state.step == 3:
+        show_result_page()
         
-        # API 키 테스트 버튼
-        if st.button("API 키 테스트", key="test_api"):
-            if st.session_state.api_key:
-                try:
-                    client = openai.OpenAI(api_key=st.session_state.api_key)
-                    response = client.chat.completions.create(
-                        model="gpt-3.5-turbo",
-                        messages=[{"role": "user", "content": "안녕하세요"}],
-                        max_tokens=5
-                    )
-                    st.success("✅ API 키가 유효합니다!")
-                except Exception as e:
-                    st.error(f"❌ API 키 테스트 실패: {e}")
-            else:
-                st.warning("⚠️ API 키를 입력해주세요.")
-        
-        st.markdown("---")
-        st.caption("💡 API 키가 없어도 예시 결과를 볼 수 있어요!")
-        
-        st.markdown("---")
-        st.markdown("### 🎮 개발자 모드")
-        if st.button("앱 초기화"):
-            reset_app()
-            st.rerun()
+    # 푸터
+    st.markdown('<div class="footer-text">이 서비스는 100% 재미 목적으로 제공됩니다 (진지하게 받아들이지 마세요!)<br>© 2025 초유쾌 축의금 분석기 - 인간관계 지갑 열어젖히기 프로젝트</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # 각 단계별 UI 표시
     st.markdown('<div class="pink-gradient-bg">', unsafe_allow_html=True)
