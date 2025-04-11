@@ -1,3 +1,2 @@
-streamlit
-openai
-pillow
+streamlit>=1.26.0
+pillow>=9.0.0
