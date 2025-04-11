@@ -12,8 +12,6 @@ from streamlit_lottie import st_lottie
 import requests
 import json
 import pytesseract
-from openai import OpenAI
-import cv2
 from io import BytesIO
 
 # 페이지 설정
@@ -333,25 +331,6 @@ st.markdown("""
         margin-bottom: 15px;
     }
     
-    /* API 키 입력 스타일 */
-    .api-key-container {
-        background-color: #f8f9fa;
-        border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 20px;
-    }
-    
-    .api-key-title {
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-    
-    .api-key-description {
-        color: #6c757d;
-        font-size: 0.9rem;
-        margin-bottom: 15px;
-    }
-    
     /* 재미있는 결과 카드 */
     .fun-result-card {
         background-color: white;
@@ -416,61 +395,140 @@ def load_lottieurl(url):
 # 이미지에서 텍스트 추출 함수
 def extract_text_from_image(image):
     try:
-        # OpenCV로 이미지 처리
+        # 이미지 처리
         img_array = np.array(image)
-        img = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
-        
-        # 이미지 전처리 (선명도 향상)
-        img = cv2.GaussianBlur(img, (3, 3), 0)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
         
         # pytesseract로 텍스트 추출 (한국어 지원)
-        text = pytesseract.image_to_string(img, lang='kor+eng')
+        text = pytesseract.image_to_string(img_array, lang='kor+eng')
         return text
     except Exception as e:
         st.error(f"이미지 처리 중 오류가 발생했습니다: {e}")
         return ""
 
-# OpenAI API를 사용한 대화 분석 함수
-def analyze_with_openai(api_key, conversation):
-    client = OpenAI(api_key=api_key)
+# 재미있는 분석 문구 생성 함수
+def generate_funny_analysis(closeness, formality, sentiment, keywords):
+    closeness_comments = [
+        f"친밀도 {closeness}%! 이 정도면 {random.choice(['친구', '지인', '동료'])}를 넘어 {random.choice(['가족', '영혼의 단짝', '전생의 연인'])} 수준이네요! 🔥",
+        f"친밀도가 {closeness}%라니! 혹시 {random.choice(['비밀 연애 중', '몰래 술 마시는 사이', '같이 복권 사는 사이'])}는 아니죠? 👀",
+        f"친밀도 {closeness}%... {random.choice(['카톡 1순위', '인스타 베프', '서로 냉장고 털어먹는 사이'])} 맞죠? 인정하세요! 😏"
+    ] if closeness > 80 else [
+        f"친밀도 {closeness}%는 {random.choice(['점심 같이 먹는 사이', '가끔 안부 묻는 사이', '명절에만 보는 친척'])} 수준이네요. 무난무난~ 😌",
+        f"친밀도 {closeness}%... {random.choice(['서로 집 주소는 아는', '생일은 기억하는', '연락처는 저장된'])} 그런 사이군요! 👍",
+        f"친밀도 {closeness}%로 {random.choice(['같은 동아리', '같은 팀', '같은 학교'])} 출신의 우정이 느껴집니다! 🤝"
+    ] if closeness > 50 else [
+        f"친밀도 {closeness}%... 혹시 {random.choice(['처음 만난 사이', '지하철에서 눈 마주친 사이', '배달음식 리뷰만 본 사이'])}는 아니죠? 😅",
+        f"친밀도가 {closeness}%라니, {random.choice(['서로 성만 아는 사이', '연락처 교환만 한 사이', '얼굴만 아는 사이'])}인가요? 🧐",
+        f"친밀도 {closeness}%... 이 자리가 {random.choice(['첫 만남', '소개팅', '업무 미팅'])}은 아니겠죠? 😳"
+    ]
     
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": """
-                당신은 대화 내용을 분석하여 축의금 금액을 추천하는 유머러스한 AI입니다.
-                대화 내용을 바탕으로 다음 정보를 JSON 형식으로 반환해주세요:
-                
-                1. amount: 추천 축의금 금액 (30000~100000 사이, 10000 단위)
-                2. closeness: 친밀도 점수 (0-100)
-                3. formality: 격식 수준 점수 (0-100)
-                4. sentiment: 감정 지수 점수 (0-100)
-                5. keywords: 주요 키워드 배열 (최대 5개)
-                6. analysis: 재미있고 유머러스한 분석 코멘트 배열 (5-7개 문장)
-                7. funny_suggestions: 재미있는 대안 제안 배열 (3개, 예: "3만원 + 가족 2명 데려가서 식사하기")
-                
-                분석은 매우 유머러스하고 재미있게 작성해주세요. 친밀도, 격식 수준, 감정 등을 재미있게 해석하고,
-                축의금 금액에 대한 재미있는 대안도 제시해주세요.
-                """},
-                {"role": "user", "content": f"다음 대화 내용을 분석해주세요:\n\n{conversation}"}
-            ],
-            temperature=0.7,
-            max_tokens=1000
-        )
-        
-        result = json.loads(response.choices[0].message.content)
-        return result
-    except Exception as e:
-        st.error(f"OpenAI API 호출 중 오류가 발생했습니다: {e}")
-        # 오류 발생 시 기본 분석 결과 반환
-        return fallback_analysis(conversation)
+    formality_comments = [
+        f"격식도 {formality}%! {random.choice(['대통령 연설문', '입사 지원서', '시어머니와의 첫 대화'])}급 존댓말이네요! 👑",
+        f"격식도 {formality}%라니, {random.choice(['국회의원', '교수님', '사장님'])}과 대화하는 줄 알았어요! 🧐",
+        f"격식도가 무려 {formality}%! 혹시 {random.choice(['면접관', '상사', '선생님'])}과 대화 중인가요? 🙇‍♂️"
+    ] if formality > 80 else [
+        f"격식도 {formality}%는 {random.choice(['동료', '선배', '친구의 친구'])}와의 대화 같아요. 적당한 예의! 👔",
+        f"격식도 {formality}%... {random.choice(['반말과 존댓말을 섞는', '가끔 높임말을 쓰는', '친하지만 예의는 지키는'])} 그런 사이군요! 😊",
+        f"격식도 {formality}%로 {random.choice(['소개팅 2차', '친구의 소개', '동아리 선후배'])} 같은 미묘한 관계가 느껴집니다! 🤔"
+    ] if formality > 40 else [
+        f"격식도 {formality}%... {random.choice(['절친', '오랜 친구', '형제자매'])} 사이 맞죠? 완전 편하게 대화하네요! 😎",
+        f"격식도가 {formality}%라니, {random.choice(['어릴 때부터 알던 친구', '매일 보는 룸메이트', '매일 카톡하는 베프'])}인가요? 🤟",
+        f"격식도 {formality}%... 이 정도면 {random.choice(['욕도 서슴없이 하는', '냉장고도 마음대로 여는', '집 비밀번호도 아는'])} 사이네요! 🔥"
+    ]
+    
+    sentiment_comments = [
+        f"대화 분위기가 {sentiment}%로 {random.choice(['꽃밭', '봄날', '휴가'])}같이 화사하네요! 🌸",
+        f"감정 지수 {sentiment}%! 이 대화를 읽으니 저까지 {random.choice(['기분이 좋아지네요', '미소가 지어져요', '행복해지네요'])}! 😄",
+        f"긍정 지수 {sentiment}%라니! {random.choice(['로또 당첨', '승진 소식', '연애 성공'])} 얘기라도 나눈 건가요? 🎉"
+    ] if sentiment > 75 else [
+        f"대화 분위기 {sentiment}%... {random.choice(['무난한 일상', '평범한 대화', '일반적인 안부'])}를 나누는 것 같네요. 😌",
+        f"감정 지수 {sentiment}%는 {random.choice(['커피 한 잔', '가벼운 점심', '동네 산책'])} 같은 편안함이 느껴집니다. ☕",
+        f"중립적인 {sentiment}% 분위기... {random.choice(['날씨 얘기', '안부 확인', '일상 대화'])}가 주를 이루나요? 🌤️"
+    ] if sentiment > 40 else [
+        f"대화 분위기가 {sentiment}%... 혹시 {random.choice(['싸운 적', '오해가 있었던', '불편한 주제'])}이 있었나요? 😟",
+        f"감정 지수 {sentiment}%라니, {random.choice(['월요일 아침', '야근 중', '시험 기간'])} 같은 무거움이 느껴집니다. 😩",
+        f"분위기 {sentiment}%... 이 대화 후에 {random.choice(['한잔 하러', '맛있는 거 먹으러', '기분 전환하러'])} 가셨나요? 🍻"
+    ]
+    
+    # 키워드 기반 코멘트
+    keyword_comments = []
+    if "축하" in keywords or "축복" in keywords or "행복" in keywords:
+        keyword_comments.append(f"'{random.choice(['축하', '축복', '행복'])}' 키워드가 보이네요! 경사스러운 일이 있으신가봐요! 🎊")
+    
+    if "고마워" in keywords or "감사" in keywords or "고맙" in keywords:
+        keyword_comments.append(f"'{random.choice(['감사', '고마움'])}' 표현이 많네요. 받은 게 많은 만큼 축의금도 넉넉히...? 💸")
+    
+    if "오랜만" in keywords or "그동안" in keywords or "요즘" in keywords:
+        keyword_comments.append(f"'{random.choice(['오랜만', '그동안', '요즘'])}' 이야기가 보이네요. 얼마나 안 만났길래! 시간=돈? 💰")
+    
+    if "바쁘" in keywords or "시간" in keywords or "일정" in keywords:
+        keyword_comments.append(f"'{random.choice(['바쁨', '시간', '일정'])}' 언급이 있네요. 바쁜 와중에 참석하시는 거라면 축의금에 성의를 좀 더...? 💼")
+    
+    if "선물" in keywords or "준비" in keywords or "챙기" in keywords:
+        keyword_comments.append(f"'{random.choice(['선물', '준비', '챙김'])}' 이야기가 보여요. 선물 대신 현금이 최고라는 거 아시죠? 🎁💵")
+    
+    # 랜덤하게 3개 선택 (키워드 코멘트가 있으면 1개는 포함)
+    selected_comments = []
+    selected_comments.append(random.choice(closeness_comments))
+    selected_comments.append(random.choice(formality_comments))
+    selected_comments.append(random.choice(sentiment_comments))
+    
+    if keyword_comments:
+        selected_comments.append(random.choice(keyword_comments))
+    
+    # 결론 코멘트
+    amount_comments = [
+        f"이 모든 것을 고려해서 AI가 분석한 결과... 축의금으로 {random.choice(['딱!', '정확히!', '바로!'])} 이 금액이 적절합니다! 💯",
+        f"우정과 예의, 그리고 약간의 {random.choice(['센스', '여유', '정성'])}를 담아 이 정도면 완벽합니다! 👌",
+        f"이 금액이면 상대방도 {random.choice(['감동', '만족', '기쁨'])}할 거예요! 축하의 마음이 전해질 겁니다! 🎊",
+        f"너무 많으면 부담, 너무 적으면 섭섭... 이 금액이 {random.choice(['황금 비율', '완벽한 균형', '최적의 선택'])}입니다! ⚖️"
+    ]
+    selected_comments.append(random.choice(amount_comments))
+    
+    return selected_comments
 
-# 기본 분석 함수 (API 오류 시 대체용)
-def fallback_analysis(conversation):
-    # 간단한 분석 로직
+# 대화 분석 함수
+def analyze_conversation(conversation):
+    # 분석 시작을 보여주는 프로그레스 바
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    # 로딩 애니메이션 (Lottie)
+    lottie_url = "https://assets5.lottiefiles.com/packages/lf20_x17ybolp.json"
+    lottie_json = load_lottieurl(lottie_url)
+    
+    with st.container():
+        st.markdown('<div class="loading-animation">', unsafe_allow_html=True)
+        lottie_placeholder = st.empty()
+        if lottie_json:
+            with lottie_placeholder:
+                st_lottie(lottie_json, speed=1, height=200, key="loading")
+        status_placeholder = st.empty()
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 분석 과정 시뮬레이션
+    for i in range(101):
+        if i < 20:
+            status_placeholder.markdown("<p style='text-align:center'>대화 패턴 분석 중...</p>", unsafe_allow_html=True)
+        elif i < 40:
+            status_placeholder.markdown("<p style='text-align:center'>감정 분석 중...</p>", unsafe_allow_html=True)
+        elif i < 60:
+            status_placeholder.markdown("<p style='text-align:center'>관계 유형 파악 중...</p>", unsafe_allow_html=True)
+        elif i < 80:
+            status_placeholder.markdown("<p style='text-align:center'>축의금 데이터베이스 참조 중...</p>", unsafe_allow_html=True)
+        else:
+            status_placeholder.markdown("<p style='text-align:center'>최종 금액 계산 중...</p>", unsafe_allow_html=True)
+        
+        progress_bar.progress(i)
+        time.sleep(0.03)
+    
+    # 분석 완료 후 로딩 UI 제거
+    progress_bar.empty()
+    status_text.empty()
+    lottie_placeholder.empty()
+    status_placeholder.empty()
+    
+    # 실제 분석 로직 (간단한 예시)
+    # 1. 친밀도 분석
     words = re.findall(r'\w+', conversation.lower())
     total_words = len(words)
     
@@ -481,7 +539,7 @@ def fallback_analysis(conversation):
     closeness_count = sum(1 for word in words if any(cw in word for cw in closeness_words))
     closeness_score = min(95, int(40 + (closeness_count / max(1, total_words * 0.1)) * 60))
     
-    # 격식 수준 분석
+    # 2. 격식 수준 분석
     formality_patterns = ['습니다', '니다', '세요', '입니다', '합니다', '드립니다', '까요', '군요', '네요', '십니까']
     informal_patterns = ['ㅋㅋ', 'ㅎㅎ', '야', '잉', '임', '쿠', '룰', '듯', '음', '엌', 'ㅇㅇ', 'ㄴㄴ']
     
@@ -491,7 +549,7 @@ def fallback_analysis(conversation):
     formality_ratio = formality_count / max(1, formality_count + informal_count)
     formality_score = min(95, int(30 + formality_ratio * 70))
     
-    # 감정 분석
+    # 3. 감정 분석
     positive_words = ['좋아', '행복', '기쁘', '즐거', '감사', '고마', '축하', '사랑', '최고', '멋지', '예쁘', '환상', '대박']
     negative_words = ['싫', '짜증', '화나', '슬프', '아쉽', '실망', '안타깝', '힘들', '어렵', '불편', '죄송', '미안', '걱정']
     
@@ -500,12 +558,12 @@ def fallback_analysis(conversation):
     
     sentiment_score = min(95, int(50 + (positive_count - negative_count) / max(1, total_words * 0.05) * 50))
     
-    # 키워드 추출
+    # 4. 키워드 추출
     all_keywords = closeness_words + [w for p in formality_patterns for w in [p]] + [w for p in informal_patterns for w in [p]] + positive_words + negative_words
     keywords = [word for word in all_keywords if word in conversation.lower()]
     keywords = list(set(keywords))[:5]  # 중복 제거 후 최대 5개
     
-    # 축의금 계산
+    # 5. 축의금 계산
     base_amount = 50000
     closeness_factor = (closeness_score / 100) * 30000
     formality_factor = (formality_score / 100) * 20000
@@ -522,13 +580,8 @@ def fallback_analysis(conversation):
     amount = max(30000, min(100000, amount))
     
     # 재미있는 분석 코멘트 생성
-    analysis = [
-        f"친밀도 {closeness_score}%! 이 정도면 {random.choice(['친구', '지인', '동료'])}를 넘어 {random.choice(['가족', '영혼의 단짝', '전생의 연인'])} 수준이네요! 🔥",
-        f"격식도 {formality_score}%... {random.choice(['반말과 존댓말을 섞는', '가끔 높임말을 쓰는', '친하지만 예의는 지키는'])} 그런 사이군요! 😊",
-        f"감정 지수 {sentiment_score}%는 {random.choice(['커피 한 잔', '가벼운 점심', '동네 산책'])} 같은 편안함이 느껴집니다. ☕",
-        f"대화에서 '{', '.join(keywords[:3])}' 같은 단어가 보이네요. 꽤 {random.choice(['친근한', '편안한', '자연스러운'])} 대화네요!",
-        "이 모든 것을 고려해서 AI가 분석한 결과... 축의금으로 딱 이 금액이 적절합니다! 💯",
-    ]
+    analysis_comments = generate_funny_analysis(closeness_score, formality_score, sentiment_score, keywords)
+    
     
     # 재미있는 대안 제안
     funny_suggestions = [
@@ -543,7 +596,7 @@ def fallback_analysis(conversation):
         "formality": formality_score,
         "sentiment": sentiment_score,
         "keywords": keywords,
-        "analysis": analysis,
+        "analysis": analysis_comments,
         "funny_suggestions": funny_suggestions
     }
 
@@ -645,54 +698,12 @@ def show_input_selection():
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# API 키 입력 화면
-def show_api_key_input():
-    st.markdown('<div class="step-container">', unsafe_allow_html=True)
-    
-    st.markdown('<div class="step-header">', unsafe_allow_html=True)
-    show_step_indicator(2)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<h2 class="step-title">OpenAI API 키 입력</h2>', unsafe_allow_html=True)
-    st.markdown('<p class="step-description">실시간 분석을 위해 OpenAI API 키를 입력해주세요. 입력한 키는 저장되지 않습니다.</p>', unsafe_allow_html=True)
-    
-    with st.container():
-        st.markdown('<div class="api-key-container">', unsafe_allow_html=True)
-        st.markdown('<div class="api-key-title">🔑 OpenAI API 키</div>', unsafe_allow_html=True)
-        st.markdown('<div class="api-key-description">OpenAI API 키를 입력하면 GPT-4를 사용해 더 정확하고 재미있는 분석 결과를 제공합니다.</div>', unsafe_allow_html=True)
-        
-        api_key = st.text_input("API 키", type="password", placeholder="sk-...")
-        
-        if st.button("다음 단계로"):
-            if api_key and api_key.startswith("sk-"):
-                st.session_state.api_key = api_key
-                st.session_state.step = 3
-                st.experimental_rerun()
-            else:
-                st.error("유효한 OpenAI API 키를 입력해주세요.")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        if st.button("API 키 없이 계속하기", key="skip_api"):
-            st.session_state.api_key = None
-            st.session_state.step = 3
-            st.experimental_rerun()
-    
-    with col2:
-        if st.button("이전 단계로", key="back_to_input_selection"):
-            st.session_state.step = 1
-            st.experimental_rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
 # 텍스트 입력 화면
 def show_text_input():
     st.markdown('<div class="step-container">', unsafe_allow_html=True)
     
     st.markdown('<div class="step-header">', unsafe_allow_html=True)
-    show_step_indicator(3)
+    show_step_indicator(2)
     st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown('<h2 class="step-title">대화 내용 입력</h2>', unsafe_allow_html=True)
@@ -712,11 +723,11 @@ def show_text_input():
         
         if submit_button and conversation:
             st.session_state.conversation = conversation
-            st.session_state.step = 4
+            st.session_state.step = 3
             st.experimental_rerun()
         
         if back_button:
-            st.session_state.step = 2
+            st.session_state.step = 1
             st.experimental_rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
@@ -726,7 +737,7 @@ def show_image_input():
     st.markdown('<div class="step-container">', unsafe_allow_html=True)
     
     st.markdown('<div class="step-header">', unsafe_allow_html=True)
-    show_step_indicator(3)
+    show_step_indicator(2)
     st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown('<h2 class="step-title">대화 이미지 업로드</h2>', unsafe_allow_html=True)
@@ -753,21 +764,21 @@ def show_image_input():
                 
                 if extracted_text:
                     st.session_state.conversation = extracted_text
-                    st.session_state.step = 4
+                    st.session_state.step = 3
                     st.experimental_rerun()
                 else:
                     st.error("이미지에서 텍스트를 추출할 수 없습니다. 다른 이미지를 시도하거나 텍스트 입력 방식을 선택해주세요.")
         
         with col2:
             if st.button("이전 단계로", key="back_from_image"):
-                st.session_state.step = 2
+                st.session_state.step = 1
                 st.experimental_rerun()
     else:
         col1, col2 = st.columns([2, 1])
         
         with col2:
             if st.button("이전 단계로", key="back_from_image_empty"):
-                st.session_state.step = 2
+                st.session_state.step = 1
                 st.experimental_rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
@@ -777,7 +788,7 @@ def show_analysis_and_result():
     st.markdown('<div class="step-container">', unsafe_allow_html=True)
     
     st.markdown('<div class="step-header">', unsafe_allow_html=True)
-    show_step_indicator(4)
+    show_step_indicator(3)
     st.markdown('</div>', unsafe_allow_html=True)
     
     # 분석 중 화면 표시
@@ -804,11 +815,7 @@ def show_analysis_and_result():
             time.sleep(0.03)
         
         # 실제 분석 실행
-        if st.session_state.api_key:
-            result = analyze_with_openai(st.session_state.api_key, st.session_state.conversation)
-        else:
-            result = fallback_analysis(st.session_state.conversation)
-        
+        result = analyze_conversation(st.session_state.conversation)
         st.session_state.result = result
         
         # 로딩 UI 제거 및 페이지 새로고침
@@ -934,13 +941,11 @@ def main():
     elif st.session_state.step == 1:
         show_input_selection()
     elif st.session_state.step == 2:
-        show_api_key_input()
-    elif st.session_state.step == 3:
         if st.session_state.input_method == "text":
             show_text_input()
         else:
             show_image_input()
-    elif st.session_state.step == 4:
+    elif st.session_state.step == 3:
         show_analysis_and_result()
 
 # 앱 실행
