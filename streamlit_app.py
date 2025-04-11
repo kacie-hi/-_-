@@ -1,811 +1,454 @@
 import streamlit as st
 import random
 import time
-import openai
+import base64
 from PIL import Image
+import io
 
-# 페이지 기본 설정
+# 페이지 설정
 st.set_page_config(
-    page_title="초유쾌 축의금 분석기",
+    page_title="그래서..얼마면 돼? - 축의금 결정기",
     page_icon="💸",
-    layout="centered",
-    initial_sidebar_state="collapsed"
+    layout="centered"
 )
 
 # CSS 스타일 적용
-def load_css():
-    st.markdown("""
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-        
-        .main-title {
-            font-family: 'Noto Sans KR', sans-serif;
-            font-weight: 900;
-            font-size: 2.5rem;
-            background: linear-gradient(90deg, #8b5cf6, #ec4899);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            padding-bottom: 1rem;
-        }
-        
-        .subtitle {
-            font-family: 'Noto Sans KR', sans-serif;
-            font-size: 1.2rem;
-            color: #6b7280;
-            margin-bottom: 2rem;
-        }
-        
-        .feature-card {
-            background-color: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            height: 100%;
-            transition: transform 0.3s;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .emoji-icon {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .feature-title {
-            font-family: 'Noto Sans KR', sans-serif;
-            font-weight: 700;
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-            color: #111827;
-        }
-        
-        .feature-text {
-            color: #6b7280;
-            font-size: 0.9rem;
-        }
-        
-        .step-container {
-            margin-bottom: 1rem;
-        }
-        
-        .step-icon {
-            display: inline-block;
-            width: 2rem;
-            height: 2rem;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #8b5cf6, #ec4899);
-            color: white;
-            text-align: center;
-            line-height: 2rem;
-            margin-right: 0.75rem;
-            font-weight: 700;
-        }
-        
-        .result-card {
-            background: linear-gradient(135deg, #8b5cf6, #ec4899);
-            border-radius: 1rem;
-            padding: 1.5rem;
-            color: white;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .result-title {
-            font-size: 1.2rem;
-            font-weight: 500;
-            opacity: 0.9;
-            margin-bottom: 0.75rem;
-        }
-        
-        .result-amount {
-            font-size: 3rem;
-            font-weight: 800;
-            margin-bottom: 0.75rem;
-        }
-        
-        .result-badge {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            background-color: #fbbf24;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #7c2d12;
-            transform: rotate(10deg);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        .analysis-card {
-            background-color: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            margin-bottom: 1.5rem;
-        }
-        
-        .analysis-point {
-            background-color: #f3f4f6;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-            display: flex;
-            align-items: flex-start;
-        }
-        
-        .point-number {
-            background: linear-gradient(135deg, #8b5cf6, #ec4899);
-            color: white;
-            width: 1.5rem;
-            height: 1.5rem;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            margin-right: 0.75rem;
-            margin-top: 0.125rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        
-        .summary-box {
-            background-color: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            border-radius: 0 0.75rem 0.75rem 0;
-            padding: 1rem;
-            margin: 1.5rem 0;
-            color: #92400e;
-        }
-        
-        .tip-box {
-            background-color: #ede9fe;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            color: #5b21b6;
-        }
-        
-        .footer-text {
-            text-align: center;
-            color: #9ca3af;
-            font-size: 0.75rem;
-            margin-top: 1.5rem;
-        }
-        
-        /* 버튼 스타일 */
-        div.stButton > button {
-            border-radius: 0.75rem;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        div.stButton > button[data-baseweb="button"] {
-            background: linear-gradient(90deg, #8b5cf6, #ec4899);
-            border: none;
-        }
-        
-        div.stButton > button:hover {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            transform: translateY(-2px);
-        }
-        
-        /* 텍스트 영역 스타일 */
-        .stTextArea textarea {
-            border-radius: 0.75rem;
-            border: 2px solid #e5e7eb;
-        }
-        
-        .stTextArea textarea:focus {
-            border-color: #8b5cf6;
-            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
-        }
-        
-        /* 사이드바 스타일 */
-        .sidebar-header {
-            font-weight: 700;
-            margin-bottom: 1rem;
-        }
-        
-        /* 로딩 애니메이션 */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .loading-pulse {
-            animation: pulse 1.5s infinite;
-        }
-        
-        /* 결과 애니메이션 */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .fadeInUp {
-            animation: fadeInUp 0.5s ease-out;
-        }
-        
-        /* 분홍색 그라데이션 배경 */
-        .pink-gradient-bg {
-            background: linear-gradient(135deg, #fdf2f8, #fcfcfc);
-            min-height: 100vh;
-            margin: -1.5rem;
-            padding: 1.5rem;
-        }
-        
-        /* 상단 그라데이션 바 */
-        .top-gradient-bar {
-            background: linear-gradient(90deg, #8b5cf6, #ec4899);
-            height: 0.5rem;
-            margin: -1.5rem -1.5rem 1.5rem -1.5rem;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
-# 예시 대화 설정
-EXAMPLE_DIALOGUE = """야 결혼한다면서? 축하해! 잘됐네
-응 고마워! 다음달 12일이야 시간되면 와줘
-그래? 축하해 시간되면 가볼게~ 어디서 해?
-강남에서 해! 청첩장은 다음주에 보낼게
-알겠어 기대할게!"""
-
-# 대체 분석 결과 데이터 (API 오류 시 사용)
-FALLBACK_RESULTS = [
-    {
-        "amount": "3만원",
-        "points": [
-            "대화 중 '그래서 언제였더라?' 물음 횟수가 3회. 관심도 21% 감지됨",
-            "이모티콘 대신 'ㅋㅋ'만 사용하는 '귀차니즘 레벨 4' 감지",
-            "주로 밤 10시 이후에만 답장하는 '최소한의 예의파' 판정"
-        ],
-        "summary": "진심 지수: 22%, 체면 지수: 78%, 인생은 줄다리기다. 당겨야 할 때를 알자.",
-        "emoji": "😐",
-        "funTip": "아껴둔 술 한 잔을 결혼식에서 건네면 인간관계 점수 +10"
-    },
-    {
-        "amount": "5만원",
-        "points": [
-            "대화 중 '축하해' 사용 횟수 4회. 허나 느낌표(!) 0회. 형식적 축하 패턴",
-            "7일 내 답장 평균시간 3시간 27분. '잊을만하면 생각나는 사이'",
-            "서로의 개인사 공유율 35%. '적당히 알고 지내는 사이' 등급"
-        ],
-        "summary": "친밀도: 중하, 경제적 부담 감수 의향: 중. 내 통장에도 구멍이 나겠군요.",
-        "emoji": "🙂",
-        "funTip": "축의금과 함께 어색한 하이파이브 선물 증정 시 존재감 +15% 상승"
-    },
-    {
-        "amount": "10만원",
-        "points": [
-            "'우리 언제 한번 만나야 되는데' 멘트 횟수 5회, 실제 만남 0회. '약속의 신' 등급",
-            "대화 중 상대방 근황 질문 11회. '은근히 챙겨주는 타입'",
-            "대화 시작 시간대가 주로 점심시간. '밥이나 한번 먹자' 클래스"
-        ],
-        "summary": "정 많은 척 지수: 89%, 실제 정 지수: 62%, 인생은 연기다. 그럴싸하게 포장하자.",
-        "emoji": "😊",
-        "funTip": "결혼식장에서 '옛날에 우리 참 재밌었는데'라는 멘트 사용 시 호감도 급상승"
+st.markdown("""
+<style>
+    /* 기본 색상 정의 */
+    :root {
+        --primary: #1e3a8a;
+        --primary-light: #3b82f6;
+        --primary-dark: #172554;
+        --secondary: #e0f2fe;
+        --accent: #f59e0b;
+        --accent-light: #fde68a;
+        --text: #0f172a;
+        --text-light: #475569;
+        --white: #ffffff;
     }
-]
+
+    /* 기본 스타일 */
+    body {
+        font-family: 'Noto Sans KR', sans-serif;
+        color: var(--text);
+        background-color: #f8fafc;
+    }
+    
+    h1, h2, h3 {
+        color: var(--primary);
+        font-weight: bold;
+    }
+    
+    h1 {
+        font-size: 2.5rem;
+    }
+    
+    .accent-text {
+        color: var(--accent) !important;
+        font-weight: bold;
+    }
+    
+    /* 카드 스타일 */
+    .card {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1);
+        margin-bottom: 1.5rem;
+    }
+    
+    /* 버튼 스타일 */
+    .stButton>button {
+        background-color: var(--primary);
+        color: white;
+        border-radius: 2rem;
+        font-weight: bold;
+        border: none;
+        padding: 0.5rem 1.5rem;
+        transition: all 0.3s;
+    }
+    
+    .stButton>button:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(30, 58, 138, 0.2);
+    }
+    
+    /* 결과 스타일 */
+    .result-amount {
+        font-size: 3rem;
+        font-weight: 900;
+        color: var(--accent);
+        margin: 1.5rem 0;
+        text-align: center;
+    }
+    
+    .result-icon {
+        font-size: 1.5rem;
+        margin-right: 0.5rem;
+    }
+    
+    .result-title {
+        font-weight: 600;
+        color: var(--primary);
+        margin-bottom: 0.3rem;
+    }
+    
+    .fun-fact {
+        background-color: var(--secondary);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        font-style: italic;
+        margin: 1.5rem 0;
+    }
+    
+    .highlight-box {
+        background-color: var(--accent-light);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid var(--accent);
+        margin: 1.5rem 0;
+    }
+    
+    /* 로딩 애니메이션 */
+    .loading-spinner {
+        text-align: center;
+        padding: 2rem;
+    }
+    
+    .stTextInput>div>div>input {
+        border: 2px solid #e2e8f0;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+    }
+    
+    .stTextArea>div>div>textarea {
+        border: 2px solid #e2e8f0;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+    }
+    
+    /* 프로그레스 바 커스텀 */
+    .stProgress > div > div > div > div {
+        background-color: var(--primary-light);
+    }
+    
+    /* 탭 스타일 */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 1rem;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background-color: white;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: var(--primary);
+        color: white;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # 재미있는 로딩 메시지
-LOADING_MESSAGES = [
-    "AI가 인간관계를 탐색 중... 🕵️‍♀️",
-    "지갑 여는 속도 측정 중... 💸",
-    "축의금 레이더 작동 중... 📡",
-    "체면 지수 계산 중... 📊",
-    "인간관계 데이터베이스 검색 중... 🔍",
-    "진심 vs 형식 분석 중... 💭",
-    "카톡 패턴 해독 중... 📱",
-    "돈쭐 가능성 타진 중... 💰"
+funny_quotes = [
+    "인공지능이 여러분의 우정을 수치화하고 있습니다...",
+    "축의금 데이터베이스를 검색 중... 왜 이렇게 인색하죠?",
+    "이모티콘 사용 빈도 분석 중... 🤔💼🎉",
+    "흠... 정말 이 사람 친구 맞나요?",
+    "여러분의 대화 내용이 AI를 당황시키고 있습니다",
+    "답장 시간을 계산 중... 3시간은 좀 너무하지 않나요?",
+    "축의금 공식: (친밀도 × 0.3) + (만난 횟수 × 0.2) - (인색함 × 0.5)",
+    "대화 분석 결과 '형식적 안부 묻기' 패턴 발견...",
+    "'안 와도 돼~'라는 메시지는 보통 '와도 좋고 안 와도 좋아'라는 의미입니다",
+    "재미있는 사실: 평균적인 축의금은 매년 인플레이션보다 빠르게 오르고 있습니다",
+    "상대방의 경제 상황을 분석 중... 음, 어렵네요."
 ]
 
+# 결과 데이터
+result_variations = {
+    "amounts": ["3만원", "5만원", "7만원", "10만원", "30만원", "500원(!)"],
+    "intimacy": [
+        "형식적인 동료 수준이네요. 이름 말고 뭐 아는 게 있나요?",
+        "지인 정도? 애매한 사이입니다. 이모티콘도 없고 대화가 딱딱해요.",
+        "겉으로는 친한 척하는 미묘한 관계군요.",
+        "진짜 친한 것 같긴 한데... 축의금은 적당히!",
+        "와... 완전 절친이네요! 대화가 너무 찐해요."
+    ],
+    "response_time": [
+        "평균 5분 이내로 답장하다니, 진짜 한시도 떨어질 수 없는 사이군요!",
+        "1시간 내로 답하는 걸 보니 꽤 신경쓰는 관계네요.",
+        "평균 3시간... 음, 바쁜 일 있나봐요? 아니면 그냥 귀찮은 건가...",
+        "하루 뒤에 답장하다니... 읽씹의 달인이시네요.",
+        "일주일 뒤 답장은... 솔직히 기억도 안 날 것 같은데요?"
+    ],
+    "funny_comments": [
+        "이 대화는 재미 지수 10%로 영화 엔딩 크레딧보다 지루합니다.",
+        "재미 지수 35%... 지하철 안내방송보다 약간만 재미있네요.",
+        "재미 지수 58%로 평범한 직장 회식 수준입니다.",
+        "재미 지수 73%로 초등학교 개그 수준! 나쁘지 않아요!",
+        "재미 지수 92%! 거의 전문 코미디언 수준이시네요!"
+    ]
+}
+
 # 세션 상태 초기화
-if 'step' not in st.session_state:
-    st.session_state.step = 1
-    
-if 'dialogue' not in st.session_state:
-    st.session_state.dialogue = ""
-    
-if 'result' not in st.session_state:
-    st.session_state.result = None
-    
+if 'page' not in st.session_state:
+    st.session_state.page = 'intro'
+
 if 'api_key' not in st.session_state:
-    st.session_state.api_key = ""
-    
-if 'loading_message' not in st.session_state:
-    st.session_state.loading_message = ""
+    st.session_state.api_key = ''
 
-# 화면 이동 함수
-def go_to_step(step):
-    st.session_state.step = step
-    
-def reset_app():
-    st.session_state.step = 1
-    st.session_state.dialogue = ""
-    st.session_state.result = None
+if 'chat_content' not in st.session_state:
+    st.session_state.chat_content = ''
 
-# OpenAI를 사용한 대화 분석 함수
-def analyze_with_openai(dialogue, api_key):
-    try:
-        if not api_key:
-            return get_fallback_result()
-        
-        client = openai.OpenAI(api_key=api_key)
-        
-        # 대화 내용 분석 요청
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": """당신은 대화 내용을 분석하여 사람들 간의 친밀도와 적절한 축의금 액수를 추천하는 AI입니다. 
-                재미있고 유쾌하게 분석해주세요. 다음 형식으로 정확히 대답해주세요:
+if 'analysis_results' not in st.session_state:
+    st.session_state.analysis_results = {
+        'amount': '',
+        'intimacy': '',
+        'response_time': '',
+        'hidden_message': '',
+        'special_finding': '',
+        'funny_score': 0,
+        'funny_comment': ''
+    }
 
-                축의금: [금액]원
-                
-                분석포인트:
-                - [재미있는 분석 포인트 1]
-                - [재미있는 분석 포인트 2]
-                - [재미있는 분석 포인트 3]
-                
-                요약: [관계 분석 유머러스한 요약]
-                
-                감정: [이모지 하나만 - 😊, 🙂, 😐 중 하나]
-                
-                조언: [재미있는 인간관계 팁]
-                """},
-                {"role": "user", "content": f"다음 대화를 분석해주세요:\n\n{dialogue}"}
-            ],
-            temperature=0.7,
-            max_tokens=800
-        )
-        
-        # 응답 파싱
-        analysis_text = response.choices[0].message.content
-        
-        # 구조화된 결과 생성
-        result = {
-            "amount": "분석 결과를 가져올 수 없습니다",
-            "points": ["대화 분석 중 오류가 발생했습니다"],
-            "summary": "다시 시도해 주세요",
-            "emoji": "😕",
-            "funTip": "다시 시도해 주세요"
-        }
-        
-        # 응답 파싱
-        lines = analysis_text.split('\n')
-        points = []
-        
-        for line in lines:
-            line = line.strip()
-            if line.startswith("축의금:"):
-                result["amount"] = line[4:].strip()
-            elif line.startswith("-"):
-                points.append(line[1:].strip())
-            elif line.startswith("요약:"):
-                result["summary"] = line[3:].strip()
-            elif line.startswith("감정:"):
-                result["emoji"] = line[3:].strip()
-            elif line.startswith("조언:"):
-                result["funTip"] = line[3:].strip()
-        
-        if points:
-            result["points"] = points
-            
-        return result
-    
-    except Exception as e:
-        st.error(f"API 호출 중 오류가 발생했습니다: {str(e)}")
-        return get_fallback_result()
+# 페이지 전환 함수
+def change_page(page):
+    st.session_state.page = page
 
-# 대체 결과 가져오기 (API 오류 시)
-def get_fallback_result():
-    result_index = random.randint(0, len(FALLBACK_RESULTS) - 1)
-    return FALLBACK_RESULTS[result_index]
-
-# 분석 처리 함수
-def analyze_dialogue():
-    # 로딩 메시지 선택
-    st.session_state.loading_message = random.choice(LOADING_MESSAGES)
+# 분석 시작 함수
+def start_analysis():
+    if not st.session_state.chat_content:
+        st.error('대화 내용을 입력해주세요!')
+        return
     
-    with st.spinner(st.session_state.loading_message):
-        # AI 분석 시간 시뮬레이션 (사용자 경험을 위한 지연)
-        time.sleep(2)
-        
-        # OpenAI로 분석 시도
-        result = analyze_with_openai(st.session_state.dialogue, st.session_state.api_key)
-        
-        st.session_state.result = result
-        st.session_state.step = 3
-
-# 메인 함수 수정
-def main():
-    # CSS 로드
-    load_css()
-    
-    # 상단 그라데이션 바
-    st.markdown('<div class="top-gradient-bar"></div>', unsafe_allow_html=True)
-    
-    # 각 단계별 UI 표시
-    st.markdown('<div class="pink-gradient-bg">', unsafe_allow_html=True)
-    
-    # API 키 입력 영역 (메인 화면 상단)
-    st.markdown("### OpenAI API 설정")
-    st.session_state.api_key = st.text_input("API 키를 입력하세요", value=st.session_state.api_key, type="password", help="OpenAI API 키를 입력하세요. 입력한 키는 저장되지 않습니다.")
-    st.caption("API 키는 안전하게 처리되며 저장되지 않습니다.")
-    
-    # API 키 테스트 버튼
-    if st.button("API 키 테스트", key="test_api"):
-        if st.session_state.api_key:
-            try:
-                client = openai.OpenAI(api_key=st.session_state.api_key)
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": "안녕하세요"}],
-                    max_tokens=5
-                )
-                st.success("✅ API 키가 유효합니다!")
-            except Exception as e:
-                st.error(f"❌ API 키 테스트 실패: {e}")
-        else:
-            st.warning("⚠️ API 키를 입력해주세요.")
-    
-    st.markdown("---")
-    
-    if st.session_state.step == 1:
-        show_intro_page()
-    elif st.session_state.step == 2:
-        show_input_page()
-    elif st.session_state.step == 3:
-        show_result_page()
-        
-    # 푸터
-    st.markdown('<div class="footer-text">이 서비스는 100% 재미 목적으로 제공됩니다 (진지하게 받아들이지 마세요!)<br>© 2025 초유쾌 축의금 분석기 - 인간관계 지갑 열어젖히기 프로젝트</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # 각 단계별 UI 표시
-    st.markdown('<div class="pink-gradient-bg">', unsafe_allow_html=True)
-    
-    if st.session_state.step == 1:
-        show_intro_page()
-    elif st.session_state.step == 2:
-        show_input_page()
-    elif st.session_state.step == 3:
-        show_result_page()
-        
-    # 푸터
-    st.markdown('<div class="footer-text">이 서비스는 100% 재미 목적으로 제공됩니다 (진지하게 받아들이지 마세요!)<br>© 2025 초유쾌 축의금 분석기 - 인간관계 지갑 열어젖히기 프로젝트</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# 첫 화면 (소개 페이지)
-def show_intro_page():
-    # 헤더
-    st.markdown('<h1 class="main-title">✨ 초유쾌 축의금 분석기 💸</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="subtitle">당신의 카톡을 AI가 분석해서 친밀도와 적정 축의금을 알려드립니다!</p>', unsafe_allow_html=True)
-    
-    # API 키 경고
     if not st.session_state.api_key:
-        st.warning("⚠️ OpenAI API 키가 설정되지 않았습니다. 사이드바에서 API 키를 입력하거나, API 키 없이 대체 결과를 볼 수 있습니다.")
+        st.error('API 키를 입력해주세요! (실제 키가 아니어도 괜찮아요)')
+        return
     
-    # 소개 카드
-    col1, col2, col3 = st.columns(3)
+    change_page('loading')
+
+# 분석 수행 (가상의 분석)
+def perform_analysis():
+    # 임의의 결과 생성
+    st.session_state.analysis_results = {
+        'amount': random.choice(result_variations['amounts']),
+        'intimacy': random.choice(result_variations['intimacy']),
+        'response_time': random.choice(result_variations['response_time']),
+        'hidden_message': '"바쁘면 안 와도 돼~"라는 메시지 발견! 번역: "와도 되고 안 와도 됨 ㅇㅇ" → 이건 -1만원 감점 요소입니다.',
+        'special_finding': '작년에 생일선물 준 적 있다는 이야기가 있네요! 이건 축의금 +1만원 보너스 요소입니다. (정확한 선물 가격은 알 수 없음)',
+        'funny_score': random.randint(50, 95),
+        'funny_comment': random.choice(result_variations['funny_comments'])
+    }
+    change_page('result')
+
+# 결과 복사 함수
+def copy_result():
+    result_text = f"""[그래서..얼마면 돼?] AI 분석 결과
+
+적정 축의금: {st.session_state.analysis_results['amount']}
+
+친밀도 분석: {st.session_state.analysis_results['intimacy']}
+응답 시간: {st.session_state.analysis_results['response_time']}
+숨겨진 메시지: {st.session_state.analysis_results['hidden_message']}
+특별 발견: {st.session_state.analysis_results['special_finding']}
+
+웃음 지수: {st.session_state.analysis_results['funny_score']}%
+{st.session_state.analysis_results['funny_comment']}
+
+* 이 결과는 100% 진지한 분석 결과입니다. (농담입니다 😉)
+"""
+    # 클립보드에 직접 복사는 불가능하므로 텍스트를 보여줍니다
+    st.code(result_text)
+    st.success('위 텍스트를 복사하여 사용하세요!')
+
+# 예시 대화 설정
+example_chat = """나: 야 너 결혼한다면서? 축하해!!!
+친구: 응 고마워 ㅎㅎ 5월 20일이야!
+나: 오 멋지다~ 청첩장은 언제 보내줄거야?
+친구: 다음 주쯤? 근데 너무 부담 갖지 마~ 바쁘면 안 와도 돼!
+나: 아니야 당연히 가야지!! 작년에 내 생일 챙겨줬는데 ㅋㅋ"""
+
+# 예시 대화 적용
+def use_example():
+    st.session_state.chat_content = example_chat
+    st.experimental_rerun()
+
+# 인트로 페이지
+if st.session_state.page == 'intro':
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; font-size: 4rem;'>💸</div>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center;'>축의금 결정기</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>대화 내용만 넣으면 AI가 <span class='accent-text'>까칠하게 분석</span>해서 적정 축의금을 알려드립니다.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>\"이 정도 친구한테 <strong>얼마</strong>나 줘야 돼?\"<br>더 이상 고민하지 마세요!</p>", unsafe_allow_html=True)
     
-    with col1:
-        st.markdown("""
-        <div class="feature-card">
-            <div class="emoji-icon">😊</div>
-            <div class="feature-title">웃음 보장</div>
-            <div class="feature-text">당신의 인간관계를 재미있게 분석해드립니다. 진지할 필요 없어요!</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class="feature-card">
-            <div class="emoji-icon">💬</div>
-            <div class="feature-title">대화 분석</div>
-            <div class="feature-text">카톡 내용을 붙여넣으면 AI가 관계 패턴을 파악합니다.</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-        <div class="feature-card">
-            <div class="emoji-icon">💸</div>
-            <div class="feature-title">축의금 추천</div>
-            <div class="feature-text">관계 분석 결과를 바탕으로 재치있는 조언까지!</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # 사용법 안내
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("## 어떻게 사용하나요?")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("""
-        <div class="step-container">
-            <span class="step-icon">1</span>
-            <span><strong>대화 내용 입력</strong></span>
-        </div>
-        <p style="font-size: 0.9rem; color: #6b7280; padding-left: 2.75rem;">
-            카톡이나 문자 대화를<br>
-            복사해서 붙여넣으세요
-        </p>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class="step-container">
-            <span class="step-icon">2</span>
-            <span><strong>AI 분석</strong></span>
-        </div>
-        <p style="font-size: 0.9rem; color: #6b7280; padding-left: 2.75rem;">
-            인공지능이 대화 내용을<br>
-            재미있게 분석합니다
-        </p>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-        <div class="step-container">
-            <span class="step-icon">3</span>
-            <span><strong>결과 확인</strong></span>
-        </div>
-        <p style="font-size: 0.9rem; color: #6b7280; padding-left: 2.75rem;">
-            적정 축의금과 함께<br>
-            재미있는 분석 결과를 확인하세요
-        </p>
-        """, unsafe_allow_html=True)
-    
-    # 시작하기 버튼
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<div class='highlight-box'><p style='text-align: center;'>✓ 완전히 재미용입니다! 진짜로 믿으시면 안 됩니다! 😉</p></div>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("시작하기 🚀", type="primary", key="start_button"):
-            go_to_step(2)
+        if st.button("시작하기", key="start_btn"):
+            change_page('input')
     
-    # 재미있는 인용구
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style="background-color: #f3f4f6; border-radius: 0.75rem; padding: 1rem; text-align: center; font-style: italic; color: #6b7280;">
-        "돈은 쓰라고 있는 것이지만, 인간관계는 지키라고 있는 것이다... 그렇다면 축의금은?" - AI 인간관계 분석가
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div class='fun-fact'>약 42.7%의 사람들이 축의금 금액 결정에 30분 이상 고민합니다. (완전히 만들어낸 통계)</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # 입력 페이지
-def show_input_page():
-    # 헤더
-    st.markdown('<h1 style="font-weight: 800; font-size: 2rem; margin-bottom: 1rem;">💬 대화 내용 입력</h1>', unsafe_allow_html=True)
-    st.markdown('<p style="color: #6b7280; margin-bottom: 1.5rem;">카톡이나 문자 내용을 붙여넣으세요. AI가 대화를 분석해 축의금을 추천해드립니다!</p>', unsafe_allow_html=True)
+elif st.session_state.page == 'input':
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<h2>✉️ 대화 내용을 붙여넣으세요</h2>", unsafe_allow_html=True)
+    st.markdown("<p>카톡, 메시지 대화 내용을 복사해서 아래에 붙여넣으세요.<br>대화 내용이 많을수록 더 재미있는(?) 분석이 가능합니다!</p>", unsafe_allow_html=True)
     
-    # API 키 경고
-    if not st.session_state.api_key:
-        st.warning("⚠️ OpenAI API 키가 설정되지 않았습니다. 사이드바에서 API 키를 입력하거나, API 키 없이 대체 결과를 볼 수 있습니다.")
+    st.text_input("API 키", placeholder="AI API 키를 입력하세요", type="password", key="api_key")
+    st.caption("* API 키는 로컬에서만 사용되며 어디에도 저장되지 않습니다")
     
-    # 대화 입력 카드
-    st.markdown("""
-    <div style="background-color: white; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); margin-bottom: 1.5rem;">
-        <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-            <div style="background-color: #ede9fe; width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; margin-right: 1rem;">
-                <span style="font-size: 1.5rem;">💬</span>
-            </div>
-            <div>
-                <h2 style="font-weight: 700; font-size: 1.25rem; margin: 0; color: #1f2937;">대화 내용</h2>
-                <p style="font-size: 0.875rem; color: #6b7280; margin: 0;">최대한 자연스러운 대화를 입력해주세요</p>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.text_area("대화 내용", placeholder="여기에 카톡 대화 내용을 붙여넣으세요...", height=200, key="chat_content")
     
-    # 대화 입력 영역
-    st.session_state.dialogue = st.text_area(
-        "대화 내용",
-        value=st.session_state.dialogue,
-        height=200,
-        placeholder="예시) 야 결혼한다면서? 축하해! 언제 하는데? / 응 고마워! 다음달 12일이야. 시간 되면 와줘!",
-        label_visibility="collapsed"
-    )
-    
-    # 입력 컨트롤
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        if st.button("✨ 예시 넣기", key="example_btn"):
-            st.session_state.dialogue = EXAMPLE_DIALOGUE
-            st.rerun()
-    
-    with col2:
-        if st.button("🗑️ 지우기", key="clear_btn"):
-            st.session_state.dialogue = ""
-            st.rerun()
-            
-    st.markdown("</div>", unsafe_allow_html=True)
-    
-    # 이미지 업로드 영역
-    st.markdown("""
-    <div style="background-color: #fdf2f8; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); margin-bottom: 1.5rem;">
-        <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-            <div style="background-color: #fbcfe8; width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; margin-right: 1rem;">
-                <span style="font-size: 1.5rem;">📷</span>
-            </div>
-            <div>
-                <h2 style="font-weight: 700; font-size: 1.25rem; margin: 0; color: #1f2937;">이미지로도 분석할 수 있어요!</h2>
-                <p style="font-size: 0.875rem; color: #6b7280; margin: 0;">카카오톡 캡처 이미지도 분석 가능합니다</p>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    uploaded_file = st.file_uploader("이미지 업로드", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
-    
-    if uploaded_file is not None:
-        st.image(uploaded_file, caption="업로드된 이미지", use_column_width=True)
-        st.caption("* 이미지 분석 기능은 개발 중입니다")
-    else:
-        st.markdown("""
-        <div style="border: 2px dashed #fbcfe8; border-radius: 0.75rem; padding: 2rem; text-align: center; color: #be185d;">
-            <span style="font-size: 2rem;">📷</span>
-            <p style="margin: 0.5rem 0 0 0;">이미지를 여기에 드래그하세요</p>
-            <p style="font-size: 0.75rem; color: #9d174d; margin: 0.25rem 0 0 0;">* 이미지 분석 기능은 개발 중입니다</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-    
-    # 버튼 영역
     col1, col2 = st.columns(2)
-    
     with col1:
-        if st.button("◀️ 이전", key="back_btn"):
-            go_to_step(1)
-    
+        if st.button("이전", key="back_to_intro"):
+            change_page('intro')
     with col2:
-        analyze_btn = st.button("🔍 분석하기", type="primary", key="analyze_btn", disabled=len(st.session_state.dialogue) < 10)
+        if st.button("분석 시작!", key="analyze_btn"):
+            start_analysis()
+    
+    st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<h3>예시로 시작해보기</h3>", unsafe_allow_html=True)
+    
+    st.markdown("<div style='background-color: #f8fafc; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;'>", unsafe_allow_html=True)
+    st.code(example_chat)
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    if st.button("이 예시로 분석하기"):
+        use_example()
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# 로딩 페이지
+elif st.session_state.page == 'loading':
+    st.markdown("<div class='card loading-spinner'>", unsafe_allow_html=True)
+    
+    progress_text = "분석 중입니다..."
+    progress_bar = st.progress(0)
+    
+    # 로딩 중 메시지 표시
+    message_placeholder = st.empty()
+    
+    for i in range(100):
+        # 진행 상태 업데이트
+        progress_bar.progress(i + 1)
         
-        if analyze_btn and len(st.session_state.dialogue) >= 10:
-            analyze_dialogue()
+        # 10% 단위로 메시지 변경
+        if i % 10 == 0:
+            message_placeholder.markdown(f"<p style='text-align: center;'>{random.choice(funny_quotes)}</p>", unsafe_allow_html=True)
+        
+        time.sleep(0.05)
+    
+    # 분석 수행 및 결과 페이지로 이동
+    perform_analysis()
+    
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # 결과 페이지
-def show_result_page():
-    result = st.session_state.result
+elif st.session_state.page == 'result':
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>🎉 분석 완료!</h2>", unsafe_allow_html=True)
     
-    # 헤더
-    st.markdown('<h1 style="font-weight: 800; font-size: 2rem; margin-bottom: 1rem;">✨ 분석 결과</h1>', unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>여러가지 <span class='accent-text'>과학적인 요소</span>를 고려한 결과...</p>", unsafe_allow_html=True)
+    st.markdown(f"<div class='result-amount'>{st.session_state.analysis_results['amount']}</div>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>이 금액이면 적절해 보이네요!<br>(농담이에요, 진지하게 받아들이지 마세요 😉)</p>", unsafe_allow_html=True)
     
-    # 추천 축의금 금액
+    # 분석 상세 결과
+    st.markdown("<div style='background-color: #e0f2fe; padding: 1.5rem; border-radius: 1rem; margin: 1.5rem 0;'>", unsafe_allow_html=True)
+    
     st.markdown(f"""
-    <div class="result-card fadeInUp">
-        <div class="result-badge">AI 분석 완료!</div>
-        <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-            <div style="background-color: rgba(255,255,255,0.2); width: 3rem; height: 3rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; margin-right: 1rem;">
-                <span style="font-size: 1.8rem;">💸</span>
-            </div>
-            <div>
-                <div class="result-title">추천 축의금</div>
-                <div class="result-amount">{result['amount']}</div>
-                <div style="font-size: 0.875rem; opacity: 0.8;">인간관계와 대화 패턴 분석 결과</div>
-            </div>
-        </div>
+    <div style='margin-bottom: 1rem;'>
+        <div class='result-icon'>💔</div>
+        <div class='result-title'>친밀도 분석</div>
+        <div>{st.session_state.analysis_results['intimacy']}</div>
     </div>
     """, unsafe_allow_html=True)
     
-    # API 키가 없는 경우 알림
-    if not st.session_state.api_key:
-        st.info("ℹ️ OpenAI API 키가 설정되지 않아 예시 분석 결과를 표시합니다. 실제 AI 분석을 위해 사이드바에서 API 키를 설정해주세요.")
-    
-    # AI 분석 결과
-    emoji = result.get('emoji', '😊')
     st.markdown(f"""
-    <div class="analysis-card fadeInUp" style="animation-delay: 0.1s;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <div style="display: flex; align-items: center;">
-                <div style="color: #eab308; margin-right: 0.5rem; font-size: 1.25rem;">⚡</div>
-                <h2 style="font-weight: 700; color: #1f2937; margin: 0; font-size: 1.25rem;">AI 분석 결과</h2>
-            </div>
-            <div style="display: flex; align-items: center;">
-                <span style="font-size: 1.8rem; margin-right: 0.5rem;">{emoji}</span>
-                <span style="background-color: #ede9fe; color: #6d28d9; font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500;">친밀도 지수</span>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # 분석 포인트들
-    for i, point in enumerate(result['points']):
-        st.markdown(f"""
-        <div class="analysis-point">
-            <div class="point-number">{i+1}</div>
-            <p style="margin: 0; color: #4b5563;">{point}</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # 요약 및 팁
-    st.markdown(f"""
-        <div class="summary-box">
-            <p style="margin: 0; font-weight: 500;">{result['summary']}</p>
-        </div>
-        
-        <div style="margin-bottom: 1rem;">
-            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-                <div style="color: #db2777; margin-right: 0.5rem; font-size: 1.25rem;">⭐</div>
-                <h3 style="font-weight: 600; color: #1f2937; margin: 0; font-size: 1.1rem;">AI의 유쾌한 조언</h3>
-            </div>
-            <div style="background-color: #fcE7f3; border-radius: 0.75rem; padding: 1rem; color: #be185d; font-style: italic;">
-                "{result['funTip']}"
-            </div>
-        </div>
-        
-        <div style="margin-bottom: 1.5rem;">
-            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-                <div style="color: #7c3aed; margin-right: 0.5rem; font-size: 1.25rem;">🏆</div>
-                <h3 style="font-weight: 600; color: #1f2937; margin: 0; font-size: 1.1rem;">인간관계 개선 팁</h3>
-            </div>
-            <div style="background-color: #ede9fe; border-radius: 0.75rem; padding: 1rem; color: #6d28d9;">
-                인간관계는 평소에도 잘 관리해야 합니다. 결혼식에서 "내가 축의금 진짜 많이 줬어"라고 귓속말 한다면 친밀도가 급상승합니다. 또는 "나 이거 아껴둔 건데..."라고 말하며 현금을 건네도 효과적입니다!
-            </div>
-        </div>
+    <div style='margin-bottom: 1rem;'>
+        <div class='result-icon'>⏰</div>
+        <div class='result-title'>응답 시간</div>
+        <div>{st.session_state.analysis_results['response_time']}</div>
     </div>
     """, unsafe_allow_html=True)
     
-    # 재미있는 통계
     st.markdown(f"""
-    <div class="analysis-card fadeInUp" style="animation-delay: 0.2s;">
-        <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-            <div style="color: #0ea5e9; margin-right: 0.5rem; font-size: 1.25rem;">📊</div>
-            <h2 style="font-weight: 700; color: #1f2937; margin: 0; font-size: 1.25rem;">재미있는 통계</h2>
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
-            <div style="text-align: center; background-color: #e0f2fe; padding: 1rem; border-radius: 0.75rem; flex: 1; margin-right: 0.75rem;">
-                <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">🔄</div>
-                <div style="font-weight: 700; color: #0c4a6e;">답장 속도</div>
-                <div style="font-size: 1.25rem; font-weight: 700; color: #0284c7;">3시간 27분</div>
-                <div style="font-size: 0.75rem; color: #0369a1;">일반인보다 42% 느림</div>
-            </div>
-            <div style="text-align: center; background-color: #fef3c7; padding: 1rem; border-radius: 0.75rem; flex: 1; margin-right: 0.75rem;">
-                <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">🤣</div>
-                <div style="font-weight: 700; color: #78350f;">웃음 지수</div>
-                <div style="font-size: 1.25rem; font-weight: 700; color: #d97706;">ㅋㅋㅋ x 12회</div>
-                <div style="font-size: 0.75rem; color: #b45309;">형식적 웃음 감지됨</div>
-            </div>
-            <div style="text-align: center; background-color: #fee2e2; padding: 1rem; border-radius: 0.75rem; flex: 1;">
-                <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">💌</div>
-                <div style="font-weight: 700; color: #7f1d1d;">진심 수치</div>
-                <div style="font-size: 1.25rem; font-weight: 700; color: #ef4444;">37%</div>
-                <div style="font-size: 0.75rem; color: #b91c1c;">마음보다는 체면</div>
-            </div>
-        </div>
+    <div style='margin-bottom: 1rem;'>
+        <div class='result-icon'>🔍</div>
+        <div class='result-title'>숨겨진 메시지</div>
+        <div>{st.session_state.analysis_results['hidden_message']}</div>
     </div>
     """, unsafe_allow_html=True)
-
-    # 하단 버튼
-    col1, col2 = st.columns(2)
     
+    st.markdown(f"""
+    <div>
+        <div class='result-icon'>🎁</div>
+        <div class='result-title'>특별 발견</div>
+        <div>{st.session_state.analysis_results['special_finding']}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # 웃음 지수
+    st.markdown("<div style='margin-top: 2rem;'>", unsafe_allow_html=True)
+    st.markdown("<div style='font-weight: 700; color: #1e3a8a; margin-bottom: 0.5rem; font-size: 1.2rem;'>🤣 웃음 지수</div>", unsafe_allow_html=True)
+    
+    st.progress(st.session_state.analysis_results['funny_score'] / 100)
+    
+    col1, col2, col3 = st.columns([1,1,1])
     with col1:
-        if st.button("🔄 다시 분석하기", key="reset_btn"):
-            reset_app()
-    
+        st.markdown("<span style='color: #475569; font-size: 0.8rem;'>심각</span>", unsafe_allow_html=True)
     with col2:
-        if st.button("📤 결과 공유하기", type="primary", key="share_btn"):
-            st.success("친구들에게 공유되었습니다! (가상)")
+        st.markdown("<span style='color: #475569; font-size: 0.8rem; display: block; text-align: center;'>보통</span>", unsafe_allow_html=True)
+    with col3:
+        st.markdown("<span style='color: #475569; font-size: 0.8rem; float: right;'>웃김</span>", unsafe_allow_html=True)
+    
+    st.markdown(f"<div style='font-style: italic; color: #1e3a8a; margin-top: 0.5rem;'>{st.session_state.analysis_results['funny_comment']}</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # QR 코드 섹션
+    st.markdown("<div style='background-color: #e0f2fe; padding: 1.5rem; border-radius: 1rem; margin: 2rem 0; text-align: center;'>", unsafe_allow_html=True)
+    st.markdown("<div style='font-weight: 700; color: #1e3a8a; margin-bottom: 0.5rem;'>💰 축의금 송금용 QR코드</div>", unsafe_allow_html=True)
+    st.markdown("<p>농담입니다! 진짜 QR은 없어요 😅</p>", unsafe_allow_html=True)
+    
+    qr_placeholder = st.empty()
+    qr_placeholder.markdown("""
+    <div style='display: inline-block; background-color: white; padding: 0.5rem; border-radius: 0.5rem; margin-top: 0.5rem;'>
+        <div style='width: 150px; height: 150px; background-color: #f8fafc; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: #475569; border: 1px dashed #e2e8f0;'>
+            여기에 QR 코드가<br>있었으면 좋았을텐데...
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # 공유 버튼들
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("결과 복사"):
+            copy_result()
+    with col2:
+        if st.button("카톡 공유"):
+            st.info("카카오톡 공유 기능은 Streamlit에서 직접 지원하지 않습니다. 결과를 복사해서 공유해주세요!")
+    
+    # 네비게이션 버튼
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("다시 분석하기", key="back_to_input_btn"):
+            change_page('input')
+    with col2:
+        if st.button("축의금 내리기", key="confetti_btn"):
             st.balloons()
+    
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    # 추천 버튼
-    st.markdown("<br>", unsafe_allow_html=True)
-    center_col = st.columns([1, 2, 1])[1]
-    with center_col:
-        if st.button("❤️ 이 서비스 추천하기", key="recommend_btn"):
-            st.snow()
-            st.success("♥ 우리 서비스가 마음에 드셨다면 친구들에게 공유해주세요!")
-
-# 앱 실행
-if __name__ == "__main__":
-    main()
+# 푸터
+st.markdown("<div style='text-align: center; padding: 1rem 0; color: #475569; font-size: 0.8rem; margin-top: 2rem;'>© 2025 그래서..얼마면 돼? | 100% 재미용이니 진지하게 받아들이지 마세요!</div>", unsafe_allow_html=True)
