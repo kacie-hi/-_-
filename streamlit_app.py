@@ -39,7 +39,7 @@ if st.button("분석하기", disabled=not (dialogue.strip() and api_key.strip())
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": tone_prompts[tone]},
-                    {"role": "user", "content": f"다음 대화를 분석해서 축의금 금액을 추천해줘:\\n{dialogue}"}
+                    {"role": "user", "content": f"다음 대화를 분석해서 축의금 금액을 추천해줘:\n{dialogue}"}
                 ]
             )
             analysis = response.choices[0].message.content
@@ -48,7 +48,7 @@ if st.button("분석하기", disabled=not (dialogue.strip() and api_key.strip())
         except Exception as e:
             st.error(f"에러 발생: {e}")
 
-st.markdown(\"\"\"---  
+st.markdown("""---  
 예시 톤:
 - 웃긴 톤: 빈봉투 + 혼밥 추천  
 - 감동 톤: "행복한 인생의 출발을 응원합니다."  
