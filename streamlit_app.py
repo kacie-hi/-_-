@@ -1,272 +1,262 @@
 import streamlit as st
 import re
 import random
-import time
-from PIL import Image
-import pytesseract
+import base64
 
 # 페이지 설정
 st.set_page_config(
-    page_title="축의금 분석기",
+    page_title="축의금 책정기",
     page_icon="💌",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# 사용자 정의 CSS
-def set_custom_style():
-    st.markdown("""
-    <style>
-    /* 기본 스타일 초기화 및 폰트 설정 */
-    * {
-        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-    }
-    
-    /* 전체 배경 */
-    .stApp {
-        background-color: #FFFFFF;
-    }
-    
-    /* 헤더 스타일 */
-    .main-title {
-        color: #333333;
-        font-size: 2.2rem;
-        font-weight: 700;
-        margin-bottom: 0;
-        letter-spacing: -0.5px;
-    }
-    
-    /* 부제목 스타일 */
-    .sub-title {
-        color: #6B7280;
-        font-size: 1rem;
-        margin-bottom: 2rem;
-        font-weight: 400;
-    }
-    
-    /* 카드 스타일 */
-    .card {
-        background-color: #FFFFFF;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        margin-bottom: 16px;
-        border: 1px solid #F3F4F6;
-    }
-    
-    /* 섹션 타이틀 */
-    .section-title {
-        color: #111827;
-        font-size: 1.3rem;
-        font-weight: 600;
-        margin-bottom: 16px;
-        letter-spacing: -0.3px;
-    }
-    
-    /* 라벨 스타일 */
-    .label {
-        color: #4B5563;
-        font-size: 0.95rem;
-        font-weight: 500;
-        margin-bottom: 8px;
-    }
-    
-    /* 버튼 스타일 */
-    .stButton > button {
-        background-color: #4F46E5;
-        color: white;
-        font-weight: 500;
-        border-radius: 8px;
-        border: none;
-        padding: 10px 20px;
-        transition: all 0.2s ease;
-    }
-    
-    .stButton > button:hover {
-        background-color: #4338CA;
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
-    }
-    
-    /* 결과 금액 스타일 */
-    .result-amount {
-        font-size: 2.5rem;
-        font-weight: 700;
-        text-align: center;
-        color: #4F46E5;
-        margin: 24px 0;
-    }
-    
-    /* 결과 텍스트 스타일 */
-    .result-text {
-        color: #374151;
-        font-size: 1rem;
-        line-height: 1.5;
-        margin-bottom: 8px;
-    }
-    
-    /* 강조 텍스트 */
-    .highlight-text {
-        background-color: #F0F9FF;
-        border-radius: 4px;
-        padding: 4px 8px;
-        color: #0369A1;
-        font-weight: 500;
-    }
-    
-    /* 페이지 인디케이터 */
-    .step-indicator {
-        display: flex;
-        justify-content: center;
-        margin: 20px 0;
-    }
-    
-    .step {
-        width: 80px;
-        height: 4px;
-        margin: 0 4px;
-        background-color: #E5E7EB;
-        border-radius: 2px;
-    }
-    
-    .active-step {
-        background-color: #4F46E5;
-    }
-    
-    /* 입력 필드 스타일 */
-    div[data-baseweb="select"] > div {
-        border-radius: 8px;
-        border-color: #E5E7EB !important;
-    }
-    
-    .stTextInput > div > div > input {
-        border-radius: 8px;
-        border-color: #E5E7EB !important;
-    }
-    
-    .stTextArea > div > div > textarea {
-        border-radius: 8px;
-        border-color: #E5E7EB !important;
-    }
-    
-    /* 탭 스타일 */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 8px 8px 0 0;
-        padding: 8px 16px;
-    }
-    
-    .stTabs [aria-selected="true"] {
-        background-color: #F3F4F6;
-        color: #4F46E5;
-        font-weight: 500;
-    }
-    
-    /* 프로그레스 바 스타일 */
-    .stProgress > div > div > div > div {
-        background-color: #4F46E5 !important;
-        border-radius: 4px;
-    }
-    
-    /* 특별 요인 박스 */
-    .factors-box {
-        background-color: #F0F9FF;
-        border-radius: 8px;
-        padding: 16px;
-        margin: 16px 0;
-        border-left: 4px solid #0EA5E9;
-    }
-    
-    /* 팁 박스 */
-    .tip-box {
-        background-color: #ECFDF5;
-        border-radius: 8px;
-        padding: 16px;
-        margin: 16px 0;
-        border-left: 4px solid #10B981;
-    }
-    
-    /* 푸터 */
-    .footer {
-        text-align: center;
-        color: #9CA3AF;
-        font-size: 0.8rem;
-        margin-top: 32px;
-        padding-bottom: 16px;
-    }
-    
-    /* 이미지 업로드 영역 */
-    .upload-area {
-        border: 2px dashed #E5E7EB;
-        border-radius: 8px;
-        padding: 24px;
-        text-align: center;
-        margin: 16px 0;
-        transition: all 0.2s ease;
-    }
-    
-    .upload-area:hover {
-        border-color: #4F46E5;
-    }
-    
-    /* 이모지 아이콘 */
-    .emoji-icon {
-        font-size: 40px;
-        margin-bottom: 12px;
-        display: block;
-        text-align: center;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    # 세션 상태 초기화
-def init_session_state():
-    if 'page' not in st.session_state:
-        st.session_state.page = 1
-    if 'analysis_results' not in st.session_state:
-        st.session_state.analysis_results = None
-    if 'event_type' not in st.session_state:
-        st.session_state.event_type = None
-    if 'relationship' not in st.session_state:
-        st.session_state.relationship = None
-    if 'conversation' not in st.session_state:
-        st.session_state.conversation = None
+# 세션 상태 초기화
+if 'page' not in st.session_state:
+    st.session_state.page = 1
+if 'analysis_results' not in st.session_state:
+    st.session_state.analysis_results = None
+if 'event_type' not in st.session_state:
+    st.session_state.event_type = None
+if 'relationship' not in st.session_state:
+    st.session_state.relationship = None
+if 'conversation' not in st.session_state:
+    st.session_state.conversation = None
 
-# 페이지 이동
+# 페이지 이동 함수
 def next_page():
     st.session_state.page += 1
 
 def prev_page():
     st.session_state.page -= 1
 
+def go_to_page(page_num):
+    st.session_state.page = page_num
+
+# CSS 스타일
+def set_custom_style():
+    st.markdown("""
+    <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    
+    * {
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+    
+    /* 배경색 */
+    .stApp {
+        background: linear-gradient(135deg, #FFEBB3, #F7D358);
+    }
+    
+    /* 카드 스타일 */
+    .card {
+        background-color: #FFFFFF;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+        margin-bottom: 20px;
+    }
+    
+    /* 헤더 스타일 */
+    .header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+    
+    /* 타이틀 스타일 */
+    .title {
+        color: #452c22;
+        font-size: 36px;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    
+    .subtitle {
+        color: #452c22;
+        font-size: 40px;
+        font-weight: 600;
+        text-align: center;
+        margin: 20px 0;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* 라벨 스타일 */
+    .label {
+        color: #452c22;
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        margin-top: 20px;
+    }
+    
+    /* 버튼 스타일 */
+    .stButton > button {
+        background-color: #E8A02F;
+        color: white;
+        font-weight: 600;
+        border-radius: 30px;
+        padding: 12px 24px;
+        border: none;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+    }
+    
+    .stButton > button:hover {
+        background-color: #D4901A;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+    
+    /* 두 번째 버튼 스타일 (회색) */
+    .secondary-button > button {
+        background-color: #F0F0F0;
+        color: #666666;
+        border: 1px solid #E0E0E0;
+        box-shadow: none;
+    }
+    
+    .secondary-button > button:hover {
+        background-color: #E8E8E8;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* 인풋 스타일 */
+    .stSelectbox > div[data-baseweb="select"] > div {
+        background-color: #F9F9F9;
+        border-radius: 10px;
+        border-color: #E0E0E0;
+        padding: 5px;
+    }
+    
+    .stTextArea > div > div > textarea {
+        background-color: #F9F9F9;
+        border-radius: 10px;
+        border-color: #E0E0E0;
+        padding: 15px;
+    }
+    
+    /* 결과 금액 스타일 */
+    .result-amount {
+        font-size: 64px;
+        font-weight: 700;
+        color: #E8A02F;
+        text-align: center;
+        margin: 30px 0;
+    }
+    
+    /* 특별 요인 카드 */
+    .factor-card {
+        background-color: #FFF8E1;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+    
+    /* 팁 카드 */
+    .tip-card {
+        background-color: #F5F5F5;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+    
+    /* 페이지 인디케이터 */
+    .page-indicator {
+        display: flex;
+        justify-content: center;
+        margin: 30px 0;
+    }
+    
+    .indicator-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background-color: rgba(232, 160, 47, 0.5);
+        margin: 0 10px;
+        display: inline-block;
+    }
+    
+    .active-dot {
+        background-color: #E8A02F;
+    }
+    
+    /* 푸터 */
+    .footer {
+        text-align: center;
+        color: #6D4C41;
+        font-size: 16px;
+        opacity: 0.7;
+        margin-top: 50px;
+        padding-bottom: 20px;
+    }
+    
+    /* 태그 스타일 */
+    .tag {
+        display: inline-block;
+        background-color: #F5F5F5;
+        color: #666666;
+        border-radius: 20px;
+        padding: 5px 15px;
+        margin-right: 10px;
+        font-size: 16px;
+        font-weight: 500;
+    }
+    
+    /* 카드 헤더 */
+    .card-header {
+        background-color: #FFF8E1;
+        border-radius: 20px 20px 0 0;
+        padding: 30px 40px;
+        margin: -40px -40px 30px -40px;
+    }
+    
+    /* 중앙 정렬 컨테이너 */
+    .center-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        text-align: center;
+        margin: 30px 0;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # 페이지 인디케이터
-def show_step_indicator(current_step, total_steps):
-    html = '<div class="step-indicator">'
-    for i in range(1, total_steps + 1):
-        if i == current_step:
-            html += '<div class="step active-step"></div>'
+def show_page_indicator(current_page, total_pages=3):
+    html = '<div class="page-indicator">'
+    for i in range(1, total_pages + 1):
+        if i == current_page:
+            html += '<div class="indicator-dot active-dot"></div>'
         else:
-            html += '<div class="step"></div>'
+            html += '<div class="indicator-dot"></div>'
     html += '</div>'
     st.markdown(html, unsafe_allow_html=True)
 
-# 이미지에서 텍스트 추출
-def extract_text_from_image(image):
-    try:
-        # 실제 환경에서는 pytesseract 사용
-        text = pytesseract.image_to_string(image, lang='kor+eng')
-        return text
-    except Exception as e:
-        # 개발 환경 테스트용
-        st.info("테스트 환경에서는 샘플 텍스트를 사용합니다.")
-        sample_texts = [
-            "오늘 뭐해? 저녁에 시간 있으면 만날래? ㅋㅋㅋ",
-            "축하해!! 결혼 소식 들었어 너무 좋겠다 🎉🎉",
-            "요즘 뭐하고 지내? 얼굴 본지 진짜 오래됐네 ㅠㅠ",
-            "내일 모임에서 보자! 오랜만에 얼굴 보네 ㅎㅎ"
-        ]
-        return random.choice(sample_texts)
+# SVG 이미지 렌더링 함수
+def render_svg(svg_code):
+    b64 = base64.b64encode(svg_code.encode("utf-8")).decode("utf-8")
+    html = f'<img src="data:image/svg+xml;base64,{b64}" style="max-width: 100%;">'
+    return html
+
+# 봉투 + 하트 SVG 코드
+def get_envelope_svg(width=300, height=180):
+    svg = f"""
+    <svg width="{width}" height="{height}" viewBox="0 0 300 180" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="300" height="180" rx="10" ry="10" fill="#FFFFFF" stroke="#EEEEEE" stroke-width="3" />
+      <path d="M0,0 L150,75 L300,0" fill="none" stroke="#EEEEEE" stroke-width="3" />
+      <path d="M150,105 C150,80 135,70 125,70 C110,70 102,90 102,105 C102,120 115,135 150,155 C185,135 198,120 198,105 C198,90 190,70 175,70 C165,70 150,80 150,105 Z" fill="url(#heartGradient)" />
+      
+      <defs>
+        <linearGradient id="heartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FF6B6B" />
+          <stop offset="100%" stop-color="#FF8E8E" />
+        </linearGradient>
+      </defs>
+    </svg>
+    """
+    return svg
 
 # 대화 분석 함수
 def analyze_conversation(conversation, event_type, relationship):
@@ -390,240 +380,203 @@ def analyze_conversation(conversation, event_type, relationship):
             "기본 점수": f"{base_intimacy}점"
         }
     }
-    # 메인 함수
+
+# 메인 함수
 def main():
     # 스타일 적용
     set_custom_style()
     
-    # 세션 상태 초기화
-    init_session_state()
-    
-    # 헤더
-    st.markdown('<h1 class="main-title">축의금 분석기</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-title">말투 분석으로 알아보는 최적의 축의금 금액</p>', unsafe_allow_html=True)
+    # 헤더 (2, 3페이지에만 표시)
+    if st.session_state.page > 1:
+        col1, col2 = st.columns([1, 5])
+        with col1:
+            envelope_svg = get_envelope_svg(width=60, height=36)
+            st.markdown(render_svg(envelope_svg), unsafe_allow_html=True)
+        with col2:
+            st.markdown('<h2 style="color: #452c22; font-size: 28px; font-weight: 600; margin-top: 0;">축의금 책정기</h2>', unsafe_allow_html=True)
+        st.markdown('<hr style="margin-top: 0; margin-bottom: 30px; border-color: #F0F0F0;">', unsafe_allow_html=True)
     
     # 페이지 인디케이터
-    show_step_indicator(st.session_state.page, 3)
+    show_page_indicator(st.session_state.page)
     
-    # 페이지 분기
+    # 페이지별 내용 표시
     if st.session_state.page == 1:
-        show_welcome_page()
+        show_start_page()
     elif st.session_state.page == 2:
         show_input_page()
     elif st.session_state.page == 3:
         show_result_page()
     
     # 푸터
-    st.markdown('<div class="footer">© 2025 축의금 분석기 | 모든 분석 결과는 재미로만 봐주세요</div>', unsafe_allow_html=True)
+    st.markdown('<div class="footer">© 2025 축의금 책정기</div>', unsafe_allow_html=True)
 
 # 시작 페이지
-def show_welcome_page():
-    st.markdown('<div class="card">', unsafe_allow_html=True)
+def show_start_page():
+    # 중앙 정렬을 위한 컨테이너
+    st.markdown('<div class="center-container">', unsafe_allow_html=True)
     
-    # 이모지 아이콘
-    st.markdown('<span class="emoji-icon">💌</span>', unsafe_allow_html=True)
+    # 봉투 아이콘
+    envelope_svg = get_envelope_svg(width=500, height=300)
+    st.markdown(render_svg(envelope_svg), unsafe_allow_html=True)
     
-    st.markdown('<h2 class="section-title">축의금, 얼마를 내야 할지 고민이신가요?</h2>', unsafe_allow_html=True)
+    # 서브타이틀
+    st.markdown('<p class="subtitle">당신의 마음을 금액으로 표현해드립니다</p>', unsafe_allow_html=True)
     
-    st.markdown("""
-    <p class="result-text">
-    생각보다 어려운 축의금 금액 결정, 이제 AI의 도움을 받아보세요.<br><br>
-    축의금 분석기는 상대방과의 대화 내용을 분석해 친밀도와 관계를 파악하고,<br>
-    최적의 축의금 금액을 추천해드립니다.
-    </p>
-    """, unsafe_allow_html=True)
+    # 버튼 공간 확보
+    st.markdown('<div style="height: 40px;"></div>', unsafe_allow_html=True)
     
-    st.markdown("""
-    <p class="result-text">
-    <b>이렇게 사용해보세요:</b><br>
-    1. 상대방과의 대화 내용을 복사해서 입력하거나 캡처 이미지를 업로드합니다<br>
-    2. 행사 유형과 관계를 선택합니다<br>
-    3. AI가 분석한 맞춤형 축의금을 확인합니다
-    </p>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="tip-box">
-    <p class="result-text">💡 93%의 사용자들이 "이 금액이면 적절하네!"라고 평가했습니다<br>
-    (완전히 신뢰할 수 없는 재미있는 통계)</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # 시작 버튼
-    if st.button('분석 시작하기', key='start_btn'):
+    # 시작하기 버튼
+    if st.button('축의금 책정하기', key='start_btn'):
         next_page()
     
     st.markdown('</div>', unsafe_allow_html=True)
 
 # 입력 페이지
 def show_input_page():
+    # 카드 시작
     st.markdown('<div class="card">', unsafe_allow_html=True)
     
-    st.markdown('<h2 class="section-title">기본 정보</h2>', unsafe_allow_html=True)
+    # 타이틀
+    st.markdown('<h2 class="title">정보 입력</h2>', unsafe_allow_html=True)
+    st.markdown('<p style="color: #666666; margin-bottom: 30px;">축의금 분석을 위한 정보를 입력해주세요</p>', unsafe_allow_html=True)
     
+    # 행사 유형
+    st.markdown('<p class="label">행사 유형</p>', unsafe_allow_html=True)
+    event_type = st.selectbox(
+        "",
+        ["결혼식", "돌잔치", "백일", "집들이", "생일", "승진", "개업", "출산"],
+        label_visibility="collapsed"
+    )
+    
+    # 관계
+    st.markdown('<p class="label">상대방과의 관계</p>', unsafe_allow_html=True)
+    relationship = st.selectbox(
+        "",
+        ["친구", "회사동료", "선후배", "가족/친척", "지인", "SNS친구"],
+        label_visibility="collapsed"
+    )
+    
+    # 대화 내용
+    st.markdown('<p class="label">대화 내용</p>', unsafe_allow_html=True)
+    conversation = st.text_area(
+        "",
+        height=200,
+        placeholder="카카오톡, 메시지 등의 대화 내용을 복사해서 붙여넣으세요...",
+        label_visibility="collapsed"
+    )
+    
+    # 버튼 영역
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown('<p class="label">행사 유형</p>', unsafe_allow_html=True)
-        event_type = st.selectbox(
-            "",
-            ["결혼식", "돌잔치", "백일", "집들이", "생일", "승진", "개업", "출산"],
-            label_visibility="collapsed"
-        )
-    
-    with col2:
-        st.markdown('<p class="label">상대방과의 관계</p>', unsafe_allow_html=True)
-        relationship = st.selectbox(
-            "",
-            ["친구", "회사동료", "선후배", "가족/친척", "지인", "SNS친구"],
-            label_visibility="collapsed"
-        )
-    
-    st.markdown('<h2 class="section-title">대화 분석</h2>', unsafe_allow_html=True)
-    
-    tab1, tab2 = st.tabs(["💬 텍스트 입력", "📷 이미지 업로드"])
-    
-    conversation = ""
-    
-    with tab1:
-        st.markdown('<p class="label">대화 내용을 붙여넣으세요</p>', unsafe_allow_html=True)
-        conversation_text = st.text_area(
-            "",
-            height=180,
-            placeholder="카카오톡, 메시지, SNS 등의 대화 내용을 복사해서 붙여넣으세요...",
-            label_visibility="collapsed"
-        )
-        if conversation_text:
-            conversation = conversation_text
-    
-    with tab2:
-        st.markdown('<p class="label">대화 캡처 이미지를 업로드하세요</p>', unsafe_allow_html=True)
-        
-        st.markdown('<div class="upload-area">', unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        if uploaded_file is not None:
-            image = Image.open(uploaded_file)
-            st.image(image, caption="업로드된 이미지", use_column_width=True)
-            
-            if st.button("이미지에서 텍스트 추출"):
-                with st.spinner("텍스트 추출 중..."):
-                    time.sleep(1)  # 시각적 효과를 위한 지연
-                    conversation = extract_text_from_image(image)
-                    st.success("텍스트 추출 완료!")
-                    st.text_area("추출된 텍스트", conversation, height=100)
-    
-    # 버튼
-    col1, col2 = st.columns(2)
-    
-    with col1:
+        st.markdown('<div class="secondary-button">', unsafe_allow_html=True)
         if st.button("← 이전", key="prev_btn_input"):
             prev_page()
+        st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
         if st.button("분석하기 →", key="next_btn_input"):
             if not conversation:
-                st.error("대화 내용을 입력하거나 이미지에서 텍스트를 추출해주세요.")
+                st.error("대화 내용을 입력해주세요.")
             else:
+                # 세션 상태에 저장
+                st.session_state.event_type = event_type
+                st.session_state.relationship = relationship
+                st.session_state.conversation = conversation
+                
                 # 분석 실행
                 with st.spinner("분석 중..."):
-                    # 시각적 효과
-                    progress_bar = st.progress(0)
-                    for i in range(101):
-                        time.sleep(0.01)
-                        progress_bar.progress(i)
-                    
-                    # 세션 상태에 저장
-                    st.session_state.event_type = event_type
-                    st.session_state.relationship = relationship
-                    st.session_state.conversation = conversation
                     st.session_state.analysis_results = analyze_conversation(conversation, event_type, relationship)
                     next_page()
     
     st.markdown('</div>', unsafe_allow_html=True)
-    # 결과 페이지
+
+# 결과 페이지
 def show_result_page():
     if not st.session_state.analysis_results:
         st.error("분석 결과가 없습니다. 처음부터 다시 시작해주세요.")
         if st.button("처음으로 돌아가기"):
-            st.session_state.page = 1
+            go_to_page(1)
         return
     
     results = st.session_state.analysis_results
     
-    # 결과 카드
+    # 카드 시작
     st.markdown('<div class="card">', unsafe_allow_html=True)
     
-    # 이벤트 정보
-    st.markdown(f'<p class="highlight-text" style="display: inline-block">{st.session_state.event_type}</p> <span style="margin: 0 8px; color: #9CA3AF;">|</span> <p class="highlight-text" style="display: inline-block">{st.session_state.relationship}</p>', unsafe_allow_html=True)
+    # 카드 헤더
+    st.markdown('<div class="card-header">', unsafe_allow_html=True)
+    st.markdown('<h2 class="title">분석 결과</h2>', unsafe_allow_html=True)
     
-    # 결과 금액
-    st.markdown(f'<div class="result-amount">{results["amount"]:,}원</div>', unsafe_allow_html=True)
+    # 태그 표시
+    col1, col2, col3 = st.columns([5, 1, 1])
+    with col2:
+        st.markdown(f'<span class="tag">{st.session_state.event_type}</span>', unsafe_allow_html=True)
+    with col3:
+        st.markdown(f'<span class="tag">{st.session_state.relationship}</span>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 결과 표시 영역
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        # 봉투 아이콘
+        envelope_svg = get_envelope_svg(width=150, height=90)
+        st.markdown(render_svg(envelope_svg), unsafe_allow_html=True)
+    
+    with col2:
+        # 결과 금액
+        st.markdown(f'<div class="result-amount">{results["amount"]:,}원</div>', unsafe_allow_html=True)
     
     # 친밀도 점수
-    st.markdown(f'<p style="text-align: center; color: #6B7280; margin-bottom: 4px;">친밀도 점수: {results["intimacy_score"]}/100</p>', unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 3, 1])
-    with col2:
-        st.progress(results["intimacy_score"]/100)
+    st.markdown(f'<p style="color: #452c22; font-size: 20px; font-weight: 600; margin-top: 20px;">친밀도 점수: {results["intimacy_score"]}/100</p>', unsafe_allow_html=True)
+    progress = results["intimacy_score"] / 100
+    st.progress(progress)
     
     # 분석 세부 정보
-    st.markdown('<h3 class="section-title" style="margin-top: 24px;">분석 세부 정보</h3>', unsafe_allow_html=True)
+    st.markdown('<h3 style="color: #452c22; font-size: 24px; font-weight: 600; margin-top: 30px; margin-bottom: 20px;">분석 세부 정보</h3>', unsafe_allow_html=True)
     
     # 2단 컬럼으로 표시
     col1, col2 = st.columns(2)
     
     with col1:
         for key, value in list(results["analysis_details"].items())[:3]:
-            st.markdown(f'<p class="result-text">• {key}: {value}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="color: #666666; font-size: 18px; margin-bottom: 10px;">• {key}: {value}</p>', unsafe_allow_html=True)
     
     with col2:
         for key, value in list(results["analysis_details"].items())[3:]:
-            st.markdown(f'<p class="result-text">• {key}: {value}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="color: #666666; font-size: 18px; margin-bottom: 10px;">• {key}: {value}</p>', unsafe_allow_html=True)
     
     # 특별 요인
     if results["special_factors"]:
-        st.markdown('<div class="factors-box">', unsafe_allow_html=True)
-        st.markdown('<p style="color: #0369A1; font-weight: 500; margin-bottom: 12px;">✨ 특별 가산 요인</p>', unsafe_allow_html=True)
+        st.markdown('<div class="factor-card">', unsafe_allow_html=True)
+        st.markdown('<p style="color: #D4A017; font-size: 20px; font-weight: 600; margin-bottom: 10px;">✨ 특별 가산 요인</p>', unsafe_allow_html=True)
         for factor in results["special_factors"]:
-            st.markdown(f'<p class="result-text">• {factor}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="color: #666666; font-size: 18px; margin-bottom: 5px;">• {factor}</p>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
     
     # 팁 박스
-    st.markdown('<div class="tip-box">', unsafe_allow_html=True)
-    st.markdown(f'<p class="result-text">💡 {results["funny_tip"]}</p>', unsafe_allow_html=True)
+    st.markdown('<div class="tip-card">', unsafe_allow_html=True)
+    st.markdown(f'<p style="color: #666666; font-size: 18px;">💡 {results["funny_tip"]}</p>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # 결과 해석
-    st.markdown('<h3 class="section-title" style="margin-top: 24px;">결과 해석</h3>', unsafe_allow_html=True)
-    
-    # 친밀도에 따른 메시지
-    if results["intimacy_score"] < 30:
-        st.markdown('<p class="result-text">친밀도가 <span style="color: #EF4444; font-weight: 500;">낮은 편</span>이네요. 형식적인 관계로 보이며, 최소한의 예의를 갖춘 금액을 추천해드립니다.</p>', unsafe_allow_html=True)
-    elif results["intimacy_score"] < 60:
-        st.markdown('<p class="result-text">친밀도가 <span style="color: #F59E0B; font-weight: 500;">보통</span>이네요. 무난하게 체면을 지킬 수 있는 금액을 추천해드립니다.</p>', unsafe_allow_html=True)
-    else:
-        st.markdown('<p class="result-text">친밀도가 <span style="color: #10B981; font-weight: 500;">높은 편</span>이네요! 각별한 사이로 보이며, 정성이 느껴지는 금액을 추천해드립니다.</p>', unsafe_allow_html=True)
-    
-    # 재미있는 코멘트
-    funny_comments = [
-        "이 금액이면 '고마워~' 한 마디는 들을 수 있어요!",
-        "이 정도면 다음에 만났을 때 커피는 사줄 거에요!",
-        "축의금 봉투만 보고도 환하게 웃을 확률 높음!",
-        "이 금액이면 다음에 연락했을 때 읽씹 당할 확률 낮음!"
-    ]
-    st.markdown(f'<p class="result-text" style="margin-top: 12px;">💌 {random.choice(funny_comments)}</p>', unsafe_allow_html=True)
-    
-    # 면책 문구
-    st.markdown('<p style="color: #9CA3AF; font-size: 0.8rem; text-align: center; margin-top: 16px;">⚠️ 이 결과는 100% 재미로만 제공되는 것입니다. 실제 금액은 본인의 상황과 판단에 따라 결정하세요.</p>', unsafe_allow_html=True)
-    
-    # 다시 분석하기 버튼
-    if st.button("← 다시 분석하기", key="prev_btn_result"):
-        st.session_state.page = 2
+    # 버튼 영역 - 중앙 정렬
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col2:
+        button_col1, button_col2 = st.columns(2)
+        
+        with button_col1:
+            st.markdown('<div class="secondary-button">', unsafe_allow_html=True)
+            if st.button("← 다시 분석", key="prev_btn_result"):
+                prev_page()
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        with button_col2:
+            if st.button("저장하기", key="save_btn"):
+                st.success("결과가 저장되었습니다!")
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# 메인 실행
 if __name__ == "__main__":
     main()
