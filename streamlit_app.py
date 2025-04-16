@@ -634,10 +634,9 @@ def show_result_page():
     
     with col2:
         # 결과 금액 - 더 강조된 디자인
+        st.markdown(f'<div class="result-amount">{results["amount"]:,} 
+        # 결과 금액 - 더 강조된 디자인
         st.markdown(f'<div class="result-amount">{results["amount"]:,}원</div>', unsafe_allow_html=True)
-    
-    # 친밀도 점수 - 개선된 디자인
-    st.markdown(f'  unsafe_allow_html=True)
     
     # 친밀도 점수 - 개선된 디자인
     st.markdown(f'<p style="color: #333333; font-size: 18px; font-weight: 600; margin-top: 24px; margin-bottom: 8px;">친밀도 점수: {results["intimacy_score"]}/100</p>', unsafe_allow_html=True)
