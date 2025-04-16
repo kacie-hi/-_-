@@ -1,7 +1,6 @@
 import streamlit as st
 import re
 import random
-import base64
 
 # 페이지 설정
 st.set_page_config(
@@ -36,141 +35,29 @@ def go_to_page(page_num):
     st.session_state.page = page_num
     st.experimental_rerun()
 
-# HTML을 직접 렌더링하는 함수
-def render_html(html_content):
-    st.markdown(html_content, unsafe_allow_html=True)
-
-# 페이지 전체 HTML 템플릿 (배경, 스타일 등 포함)
-def get_page_template():
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-            
-            body {
-                font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
-                margin: 0;
-                padding: 0;
-                width: 100vw;
-                height: 100vh;
-                background: linear-gradient(135deg, #FFEBB3, #F7D358);
-            }
-            
-            .content-container {
-                max-width: 1200px;
-                margin: 0 auto;
-                padding: 2rem;
-            }
-            
-            .page-indicator {
-                display: flex;
-                justify-content: center;
-                margin: 20px 0;
-            }
-            
-            .indicator-dot {
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-                background-color: rgba(232, 160, 47, 0.3);
-                margin: 0 8px;
-            }
-            
-            .active-dot {
-                background-color: #E8A02F;
-            }
-            
-            .footer {
-                text-align: center;
-                padding: 1rem;
-                color: #6D4C41;
-                opacity: 0.7;
-                font-size: 14px;
-                margin-top: 2rem;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="content-container">
-            {content}
-        </div>
-        <div class="footer">
-            © 2025 축의금 책정기
-        </div>
-    </body>
-    </html>
-    """
-
-# 페이지 인디케이터 HTML
-def get_page_indicator_html(current_page, total_pages=3):
-    html = '<div class="page-indicator">'
-    for i in range(1, total_pages + 1):
-        if i == current_page:
-            html += '<div class="indicator-dot active-dot"></div>'
-        else:
-            html += '<div class="indicator-dot"></div>'
-    html += '</div>'
-    return html
-
-# 시작 페이지 HTML
-def get_start_page_html():
-    html = """
+# 페이지 스타일 설정
+def set_page_style():
+    st.markdown("""
     <style>
-        .start-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 80vh;
-            text-align: center;
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        
+        * {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
         }
         
-        .envelope-container {
-            margin-bottom: 2rem;
+        .stApp {
+            background: linear-gradient(135deg, #FFEBB3, #F7D358);
         }
         
-        .subtitle {
-            color: #452c22;
-            font-size: 40px;
-            font-weight: 600;
-            margin-bottom: 3rem;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
         }
-    </style>
-    
-    <div class="start-container">
-        <div class="envelope-container">
-            <svg width="500" height="300" viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.15"/>
-                    </filter>
-                    <linearGradient id="heartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#FF6B6B" />
-                        <stop offset="100%" stop-color="#FF8E8E" />
-                    </linearGradient>
-                </defs>
-                <rect x="0" y="0" width="500" height="300" rx="15" ry="15" fill="#FFFFFF" stroke="#EEEEEE" stroke-width="2" filter="url(#shadow)" />
-                <path d="M0,0 L250,130 L500,0" fill="none" stroke="#EEEEEE" stroke-width="2" />
-                <path d="M250,175 C250,140 230,125 215,125 C195,125 185,150 185,170 C185,190 205,215 250,245 C295,215 315,190 315,170 C315,150 305,125 285,125 C270,125 250,140 250,175 Z" fill="url(#heartGradient)" />
-            </svg>
-        </div>
         
-        <p class="subtitle">당신의 마음을 금액으로 표현해드립니다</p>
-    </div>
-    """
-    return html
-
-# 입력 페이지 HTML 템플릿
-def get_input_page_html():
-    html = """
-    <style>
         .header {
             display: flex;
             align-items: center;
-            padding: 1rem 0;
             margin-bottom: 2rem;
         }
         
@@ -197,106 +84,18 @@ def get_input_page_html():
             margin-bottom: 1rem;
         }
         
-        .section-subtitle {
-            color: #666666;
-            font-size: 18px;
-            margin-bottom: 2rem;
+        .center-text {
+            text-align: center;
         }
         
-        .input-section {
-            margin-bottom: 2rem;
-        }
-        
-        .input-label {
+        .subtitle {
+            color: #452c22;
             font-size: 24px;
-            font-weight: 600;
-            color: #452c22;
-            margin-bottom: 1rem;
+            font-weight: 500;
+            margin: 1.5rem 0;
         }
-    </style>
-    
-    <div class="header">
-        <svg width="40" height="24" viewBox="0 0 300 180" xmlns="http://www.w3.org/2000/svg">
-            <rect x="0" y="0" width="300" height="180" rx="10" ry="10" fill="#FFFFFF" stroke="#EEEEEE" stroke-width="3" />
-            <path d="M0,0 L150,75 L300,0" fill="none" stroke="#EEEEEE" stroke-width="3" />
-            <path d="M150,105 C150,80 135,70 125,70 C110,70 102,90 102,105 C102,120 115,135 150,155 C185,135 198,120 198,105 C198,90 190,70 175,70 C165,70 150,80 150,105 Z" fill="#FF6B6B" />
-        </svg>
-        <span class="header-title">축의금 책정기</span>
-    </div>
-    
-    <div class="card">
-        <h2 class="section-title">정보 입력</h2>
-        <p class="section-subtitle">축의금 분석을 위한 정보를 입력해주세요</p>
         
-        <div class="input-section">
-            <p class="input-label">행사 유형</p>
-            <!-- Streamlit will replace this -->
-            <div id="event-type-select"></div>
-        </div>
-        
-        <div class="input-section">
-            <p class="input-label">상대방과의 관계</p>
-            <!-- Streamlit will replace this -->
-            <div id="relationship-select"></div>
-        </div>
-        
-        <div class="input-section">
-            <p class="input-label">대화 내용</p>
-            <!-- Streamlit will replace this -->
-            <div id="conversation-input"></div>
-        </div>
-        
-        <!-- Streamlit will replace these -->
-        <div id="button-container" style="display: flex; justify-content: space-between; margin-top: 3rem;">
-            <div id="prev-button" style="width: 48%;"></div>
-            <div id="next-button" style="width: 48%;"></div>
-        </div>
-    </div>
-    """
-    return html
-
-# 결과 페이지 HTML 템플릿
-def get_result_page_html(results):
-    html = f"""
-    <style>
-        .header {{
-            display: flex;
-            align-items: center;
-            padding: 1rem 0;
-            margin-bottom: 2rem;
-        }}
-        
-        .header-title {{
-            font-size: 28px;
-            font-weight: 600;
-            color: #452c22;
-            margin-left: 1rem;
-        }}
-        
-        .card {{
-            background-color: white;
-            border-radius: 20px;
-            padding: 3rem;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-            margin: 0 auto;
-            max-width: 900px;
-        }}
-        
-        .card-header {{
-            background-color: #FFF8E1;
-            border-radius: 20px 20px 0 0;
-            padding: 2rem;
-            margin: -3rem -3rem 2rem -3rem;
-        }}
-        
-        .section-title {{
-            font-size: 36px;
-            font-weight: 600;
-            color: #452c22;
-            margin-bottom: 1rem;
-        }}
-        
-        .tag {{
+        .tag {
             display: inline-block;
             background-color: #F5F5F5;
             color: #666666;
@@ -305,156 +104,163 @@ def get_result_page_html(results):
             margin-right: 0.5rem;
             font-weight: 500;
             font-size: 16px;
-        }}
+        }
         
-        .result-container {{
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 2rem 0;
-        }}
-        
-        .envelope-container {{
-            margin-right: 2rem;
-        }}
-        
-        .result-amount {{
-            font-size: 64px;
+        .result-amount {
+            font-size: 54px;
             font-weight: 700;
             color: #E8A02F;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
-        }}
+            text-align: center;
+            margin: 1.5rem 0;
+        }
         
-        .intimacy-section {{
-            margin: 2rem 0;
-        }}
+        .card-header {
+            background-color: #FFF8E1;
+            border-radius: 20px 20px 0 0;
+            padding: 2rem;
+            margin: -3rem -3rem 2rem -3rem;
+        }
         
-        .details-section {{
+        .details-section {
             background-color: #F9F9F9;
             border-radius: 15px;
             padding: 2rem;
             margin: 2rem 0;
-        }}
+        }
         
-        .details-title {{
-            font-size: 24px;
-            font-weight: 600;
-            color: #452c22;
-            margin-bottom: 1.5rem;
-        }}
-        
-        .details-item {{
-            font-size: 18px;
-            color: #666666;
-            margin-bottom: 0.5rem;
-        }}
-        
-        .factors-section {{
+        .factors-section {
             background-color: #FFF8E1;
             border-radius: 15px;
             padding: 2rem;
             margin: 2rem 0;
-        }}
+        }
         
-        .factors-title {{
-            font-size: 20px;
-            font-weight: 600;
-            color: #D4A017;
-            margin-bottom: 1rem;
-        }}
-        
-        .tip-section {{
+        .tip-section {
             background-color: #F0F0F0;
             border-radius: 15px;
             padding: 2rem;
             margin: 2rem 0;
-        }}
-        
-        .columns {{
-            display: flex;
-            justify-content: space-between;
-        }}
-        
-        .column {{
-            width: 48%;
-        }}
-    </style>
-    
-    <div class="header">
-        <svg width="40" height="24" viewBox="0 0 300 180" xmlns="http://www.w3.org/2000/svg">
-            <rect x="0" y="0" width="300" height="180" rx="10" ry="10" fill="#FFFFFF" stroke="#EEEEEE" stroke-width="3" />
-            <path d="M0,0 L150,75 L300,0" fill="none" stroke="#EEEEEE" stroke-width="3" />
-            <path d="M150,105 C150,80 135,70 125,70 C110,70 102,90 102,105 C102,120 115,135 150,155 C185,135 198,120 198,105 C198,90 190,70 175,70 C165,70 150,80 150,105 Z" fill="#FF6B6B" />
-        </svg>
-        <span class="header-title">축의금 책정기</span>
-    </div>
-    
-    <div class="card">
-        <div class="card-header">
-            <h2 class="section-title">분석 결과</h2>
-            <span class="tag">{st.session_state.event_type}</span>
-            <span class="tag">{st.session_state.relationship}</span>
-        </div>
-        
-        <div class="result-container">
-            <div class="envelope-container">
-                <svg width="150" height="90" viewBox="0 0 300 180" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="0" y="0" width="300" height="180" rx="10" ry="10" fill="#FFFFFF" stroke="#EEEEEE" stroke-width="3" />
-                    <path d="M0,0 L150,75 L300,0" fill="none" stroke="#EEEEEE" stroke-width="3" />
-                    <path d="M150,105 C150,80 135,70 125,70 C110,70 102,90 102,105 C102,120 115,135 150,155 C185,135 198,120 198,105 C198,90 190,70 175,70 C165,70 150,80 150,105 Z" fill="#FF6B6B" />
-                </svg>
-            </div>
-            
-            <div class="result-amount">{results["amount"]:,}원</div>
-        </div>
-        
-        <div class="intimacy-section">
-            <p style="font-size: 20px; font-weight: 600; color: #452c22; margin-bottom: 0.5rem;">친밀도 점수: {results["intimacy_score"]}/100</p>
-            <!-- Streamlit will replace this -->
-            <div id="progress-bar"></div>
-        </div>
-        
-        <div class="details-section">
-            <h3 class="details-title">분석 세부 정보</h3>
-            
-            <div class="columns">
-                <div class="column">
-                    {
-                        ''.join([f'<p class="details-item">• {key}: {value}</p>' 
-                                 for key, value in list(results["analysis_details"].items())[:3]])
-                    }
-                </div>
-                
-                <div class="column">
-                    {
-                        ''.join([f'<p class="details-item">• {key}: {value}</p>' 
-                                 for key, value in list(results["analysis_details"].items())[3:]])
-                    }
-                </div>
-            </div>
-        </div>
-        
-        {
-            f'''
-            <div class="factors-section">
-                <h3 class="factors-title">✨ 특별 가산 요인</h3>
-                {"".join([f'<p class="details-item">• {factor}</p>' for factor in results["special_factors"]])}
-            </div>
-            ''' if results["special_factors"] else ''
         }
         
-        <div class="tip-section">
-            <p class="details-item">💡 {results["funny_tip"]}</p>
-        </div>
+        .details-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #452c22;
+            margin-bottom: 1.5rem;
+        }
         
-        <!-- Streamlit will replace these -->
-        <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 3rem;">
-            <div id="prev-button" style="width: 200px;"></div>
-            <div id="save-button" style="width: 200px;"></div>
-        </div>
-    </div>
+        .details-item {
+            font-size: 16px;
+            color: #666666;
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-indicator {
+            display: flex;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+        
+        .indicator-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: rgba(232, 160, 47, 0.3);
+            margin: 0 8px;
+            display: inline-block;
+        }
+        
+        .active-dot {
+            background-color: #E8A02F;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 1rem;
+            color: #6D4C41;
+            opacity: 0.7;
+            font-size: 14px;
+            margin-top: 2rem;
+        }
+        
+        /* 버튼 스타일 */
+        .stButton > button {
+            background-color: #E8A02F;
+            color: white;
+            font-weight: 600;
+            border-radius: 30px;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.2s;
+        }
+        
+        .stButton > button:hover {
+            background-color: #D4901A;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 이전 버튼 스타일 */
+        .secondary-btn > button {
+            background-color: #F0F0F0;
+            color: #666666;
+            border: 1px solid #E0E0E0;
+        }
+        
+        .secondary-btn > button:hover {
+            background-color: #E0E0E0;
+        }
+        
+        /* 입력 필드 스타일 */
+        .stSelectbox > div > div > div {
+            background-color: white;
+            border: 1px solid #E0E0E0;
+            border-radius: 10px;
+            padding: 5px;
+        }
+        
+        .stTextArea > div > div > textarea {
+            border: 1px solid #E0E0E0;
+            border-radius: 10px;
+            padding: 15px;
+        }
+        
+        /* 프로그레스 바 색상 */
+        .stProgress > div > div > div > div {
+            background-color: #E8A02F;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 봉투 + 하트 SVG
+def get_envelope_svg(width=300, height=180):
+    svg = f"""
+    <svg width="{width}" height="{height}" viewBox="0 0 300 180" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.15"/>
+            </filter>
+            <linearGradient id="heartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FF6B6B" />
+                <stop offset="100%" stop-color="#FF8E8E" />
+            </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="300" height="180" rx="10" ry="10" fill="#FFFFFF" stroke="#EEEEEE" stroke-width="3" filter="url(#shadow)" />
+        <path d="M0,0 L150,75 L300,0" fill="none" stroke="#EEEEEE" stroke-width="3" />
+        <path d="M150,105 C150,80 135,70 125,70 C110,70 102,90 102,105 C102,120 115,135 150,155 C185,135 198,120 198,105 C198,90 190,70 175,70 C165,70 150,80 150,105 Z" fill="url(#heartGradient)" />
+    </svg>
     """
-    return html
+    return svg
+
+# 페이지 인디케이터
+def show_page_indicator(current_page, total_pages=3):
+    indicator_html = '<div class="page-indicator">'
+    for i in range(1, total_pages + 1):
+        if i == current_page:
+            indicator_html += '<div class="indicator-dot active-dot"></div>'
+        else:
+            indicator_html += '<div class="indicator-dot"></div>'
+    indicator_html += '</div>'
+    st.markdown(indicator_html, unsafe_allow_html=True)
 
 # 대화 분석 함수
 def analyze_conversation(conversation, event_type, relationship):
@@ -581,110 +387,202 @@ def analyze_conversation(conversation, event_type, relationship):
 
 # 메인 함수
 def main():
-    # 컨텐츠 컨테이너 열기
-    _, center_col, _ = st.columns([1, 10, 1])  # 좌우 여백을 위한 열 추가
+    # 스타일 적용
+    set_page_style()
     
-    with center_col:
-        if st.session_state.page == 1:
-            # 시작 페이지
-            start_page_html = get_start_page_html()
-            st.markdown(get_page_template().format(content=start_page_html + get_page_indicator_html(1)), unsafe_allow_html=True)
-            
-            # 버튼을 HTML 아래에 배치
-            col1, col2, col3 = st.columns([2, 6, 2])
-            with col2:
-                if st.button("축의금 책정하기", key="start_btn", use_container_width=True):
+    # 페이지 표시
+    if st.session_state.page == 1:
+        show_start_page()
+    elif st.session_state.page == 2:
+        show_input_page()
+    elif st.session_state.page == 3:
+        show_result_page()
+    
+    # 푸터
+    st.markdown('<div class="footer">© 2025 축의금 책정기</div>', unsafe_allow_html=True)
+
+# 시작 페이지
+def show_start_page():
+    # 페이지 인디케이터
+    show_page_indicator(1)
+    
+    # 콘텐츠 컨테이너
+    st.markdown('<div class="center-text">', unsafe_allow_html=True)
+    
+    # 봉투 이미지
+    st.markdown(f'<div style="text-align:center; margin:40px 0;">{get_envelope_svg(width=500, height=300)}</div>', unsafe_allow_html=True)
+    
+    # 서브타이틀
+    st.markdown('<p class="subtitle" style="font-size:40px; text-align:center; margin:30px 0;">당신의 마음을 금액으로 표현해드립니다</p>', unsafe_allow_html=True)
+    
+    # 시작 버튼
+    col1, col2, col3 = st.columns([1,1,1])
+    with col2:
+        if st.button("축의금 책정하기", key="start_btn", use_container_width=True):
+            next_page()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# 입력 페이지
+def show_input_page():
+    # 헤더
+    st.markdown('<div class="header">', unsafe_allow_html=True)
+    st.markdown(f'<span>{get_envelope_svg(width=40, height=24)}</span><span class="header-title">축의금 책정기</span>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 페이지 인디케이터
+    show_page_indicator(2)
+    
+    # 카드 콘텐츠
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    
+    st.markdown('<h2 class="section-title">정보 입력</h2>', unsafe_allow_html=True)
+    st.markdown('<p style="color:#666; margin-bottom:30px;">축의금 분석을 위한 정보를 입력해주세요</p>', unsafe_allow_html=True)
+    
+    # 행사 유형
+    st.markdown('<p style="font-size:24px; font-weight:600; color:#452c22; margin-top:30px; margin-bottom:10px;">행사 유형</p>', unsafe_allow_html=True)
+    event_type = st.selectbox(
+        "",
+        ["결혼식", "돌잔치", "백일", "집들이", "생일", "승진", "개업", "출산"],
+        index=0 if st.session_state.event_type == "결혼식" else ["결혼식", "돌잔치", "백일", "집들이", "생일", "승진", "개업", "출산"].index(st.session_state.event_type),
+        label_visibility="collapsed"
+    )
+    
+    # 관계
+    st.markdown('<p style="font-size:24px; font-weight:600; color:#452c22; margin-top:30px; margin-bottom:10px;">상대방과의 관계</p>', unsafe_allow_html=True)
+    relationship = st.selectbox(
+        "",
+        ["친구", "회사동료", "선후배", "가족/친척", "지인", "SNS친구"],
+        index=0 if st.session_state.relationship == "친구" else ["친구", "회사동료", "선후배", "가족/친척", "지인", "SNS친구"].index(st.session_state.relationship),
+        label_visibility="collapsed"
+    )
+    
+    # 대화 내용
+    st.markdown('<p style="font-size:24px; font-weight:600; color:#452c22; margin-top:30px; margin-bottom:10px;">대화 내용</p>', unsafe_allow_html=True)
+    conversation = st.text_area(
+        "",
+        value=st.session_state.conversation,
+        height=200,
+        placeholder="카카오톡, 메시지 등의 대화 내용을 복사해서 붙여넣으세요...",
+        label_visibility="collapsed"
+    )
+    
+    # 버튼 영역
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown('<div class="secondary-btn">', unsafe_allow_html=True)
+        if st.button("← 이전", key="prev_btn_input", use_container_width=True):
+            prev_page()
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with col2:
+        if st.button("분석하기 →", key="next_btn_input", use_container_width=True):
+            if not conversation:
+                st.error("대화 내용을 입력해주세요.")
+            else:
+                # 세션 상태에 저장
+                st.session_state.event_type = event_type
+                st.session_state.relationship = relationship
+                st.session_state.conversation = conversation
+                
+                # 분석 실행
+                with st.spinner("분석 중..."):
+                    st.session_state.analysis_results = analyze_conversation(conversation, event_type, relationship)
                     next_page()
-        
-        elif st.session_state.page == 2:
-            # 입력 페이지 HTML 템플릿
-            input_page_html = get_input_page_html()
-            
-            # 페이지 인디케이터 추가
-            page_with_indicator = input_page_html + get_page_indicator_html(2)
-            
-            # 전체 페이지 템플릿 적용
-            st.markdown(get_page_template().format(content=page_with_indicator), unsafe_allow_html=True)
-            
-            # 입력 요소들 (HTML 플레이스홀더 대체)
-            st.markdown("<style>.stSelectbox {margin-bottom: 40px;}</style>", unsafe_allow_html=True)
-            
-            event_type = st.selectbox(
-                "행사 유형",
-                ["결혼식", "돌잔치", "백일", "집들이", "생일", "승진", "개업", "출산"],
-                key="event_type_select",
-                index=0 if st.session_state.event_type == "결혼식" else ["결혼식", "돌잔치", "백일", "집들이", "생일", "승진", "개업", "출산"].index(st.session_state.event_type)
-            )
-            
-            relationship = st.selectbox(
-                "상대방과의 관계",
-                ["친구", "회사동료", "선후배", "가족/친척", "지인", "SNS친구"],
-                key="relationship_select",
-                index=0 if st.session_state.relationship == "친구" else ["친구", "회사동료", "선후배", "가족/친척", "지인", "SNS친구"].index(st.session_state.relationship)
-            )
-            
-            conversation = st.text_area(
-                "대화 내용",
-                value=st.session_state.conversation,
-                height=200,
-                placeholder="카카오톡, 메시지 등의 대화 내용을 복사해서 붙여넣으세요...",
-                key="conversation_input"
-            )
-            
-            # 버튼 영역
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                if st.button("← 이전", key="prev_btn", use_container_width=True):
-                    prev_page()
-            
-            with col2:
-                if st.button("분석하기 →", key="analyze_btn", use_container_width=True):
-                    if not conversation:
-                        st.error("대화 내용을 입력해주세요.")
-                    else:
-                        # 세션 상태에 저장
-                        st.session_state.event_type = event_type
-                        st.session_state.relationship = relationship
-                        st.session_state.conversation = conversation
-                        
-                        # 분석 실행
-                        with st.spinner("분석 중..."):
-                            st.session_state.analysis_results = analyze_conversation(conversation, event_type, relationship)
-                            next_page()
-        
-        elif st.session_state.page == 3:
-            # 결과가 없으면 오류 표시
-            if not st.session_state.analysis_results:
-                st.error("분석 결과가 없습니다. 처음부터 다시 시작해주세요.")
-                if st.button("처음으로 돌아가기", key="go_home_btn"):
-                    go_to_page(1)
-                return
-            
-            # 결과 페이지 HTML 생성
-            results = st.session_state.analysis_results
-            result_page_html = get_result_page_html(results)
-            
-            # 페이지 인디케이터 추가
-            page_with_indicator = result_page_html + get_page_indicator_html(3)
-            
-            # 전체 페이지 템플릿 적용
-            st.markdown(get_page_template().format(content=page_with_indicator), unsafe_allow_html=True)
-            
-            # 프로그레스 바 추가 (HTML에서 대체할 수 없음)
-            progress = results["intimacy_score"] / 100
-            st.progress(progress)
-            
-            # 버튼 영역
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                if st.button("← 다시 분석", key="retry_btn", use_container_width=True):
-                    prev_page()
-            
-            with col2:
-                if st.button("결과 저장", key="save_btn", use_container_width=True):
-                    st.success("결과가 저장되었습니다!")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# 결과 페이지
+def show_result_page():
+    if not st.session_state.analysis_results:
+        st.error("분석 결과가 없습니다. 처음부터 다시 시작해주세요.")
+        if st.button("처음으로 돌아가기"):
+            go_to_page(1)
+        return
+    
+    results = st.session_state.analysis_results
+    
+    # 헤더
+    st.markdown('<div class="header">', unsafe_allow_html=True)
+    st.markdown(f'<span>{get_envelope_svg(width=40, height=24)}</span><span class="header-title">축의금 책정기</span>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 페이지 인디케이터
+    show_page_indicator(3)
+    
+    # 결과 카드
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    
+    # 카드 헤더
+    st.markdown('<div class="card-header">', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-title">분석 결과</h2>', unsafe_allow_html=True)
+    
+    # 태그 표시
+    st.markdown(
+        f'<span class="tag">{st.session_state.event_type}</span><span class="tag">{st.session_state.relationship}</span>', 
+        unsafe_allow_html=True
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 결과 표시 영역
+    col1, col2 = st.columns([1, 3])
+    
+    with col1:
+        # 봉투 아이콘
+        st.markdown(get_envelope_svg(width=150, height=90), unsafe_allow_html=True)
+    
+    with col2:
+        # 결과 금액
+        st.markdown(f'<div class="result-amount">{results["amount"]:,}원</div>', unsafe_allow_html=True)
+    
+    # 친밀도 점수
+    st.markdown(f'<p style="color:#452c22; font-size:20px; font-weight:600; margin-top:30px;">친밀도 점수: {results["intimacy_score"]}/100</p>', unsafe_allow_html=True)
+    st.progress(results["intimacy_score"] / 100)
+    
+    # 분석 세부 정보
+    st.markdown('<div class="details-section">', unsafe_allow_html=True)
+    st.markdown('<h3 class="details-title">분석 세부 정보</h3>', unsafe_allow_html=True)
+    
+    # 2단 컬럼으로 표시
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        for key, value in list(results["analysis_details"].items())[:3]:
+            st.markdown(f'<p class="details-item">• {key}: {value}</p>', unsafe_allow_html=True)
+    
+    with col2:
+        for key, value in list(results["analysis_details"].items())[3:]:
+            st.markdown(f'<p class="details-item">• {key}: {value}</p>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 특별 요인
+    if results["special_factors"]:
+        st.markdown('<div class="factors-section">', unsafe_allow_html=True)
+        st.markdown('<h3 style="color:#D4A017; font-size:20px; font-weight:600; margin-bottom:15px;">✨ 특별 가산 요인</h3>', unsafe_allow_html=True)
+        for factor in results["special_factors"]:
+            st.markdown(f'<p class="details-item">• {factor}</p>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 팁 박스
+    st.markdown('<div class="tip-section">', unsafe_allow_html=True)
+    st.markdown(f'<p class="details-item">💡 {results["funny_tip"]}</p>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 버튼 영역
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col1:
+        st.markdown('<div class="secondary-btn">', unsafe_allow_html=True)
+        if st.button("← 다시 분석", key="prev_btn_result", use_container_width=True):
+            prev_page()
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with col3:
+        if st.button("결과 저장", key="save_btn", use_container_width=True):
+            st.success("결과가 저장되었습니다!")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
