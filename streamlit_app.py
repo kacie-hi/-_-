@@ -1,12 +1,13 @@
 import streamlit as st
 import re
 import random
+import base64
 
 # 페이지 설정
 st.set_page_config(
     page_title="축의금 책정기",
     page_icon="💌",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="collapsed"
 )
 
@@ -16,253 +17,342 @@ if 'page' not in st.session_state:
 if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 if 'event_type' not in st.session_state:
-    st.session_state.event_type = "결혼식"
+    st.session_state.event_type = None
 if 'relationship' not in st.session_state:
-    st.session_state.relationship = "친구"
+    st.session_state.relationship = None
 if 'conversation' not in st.session_state:
-    st.session_state.conversation = ""
+    st.session_state.conversation = None
 
 # 페이지 이동 함수
 def next_page():
     st.session_state.page += 1
-    st.experimental_rerun()
 
 def prev_page():
     st.session_state.page -= 1
-    st.experimental_rerun()
 
 def go_to_page(page_num):
     st.session_state.page = page_num
-    st.experimental_rerun()
 
-# 페이지 스타일 설정
-def set_page_style():
+# CSS 스타일 - 개선된 버전
+def set_custom_style():
     st.markdown("""
     <style>
-        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        
-        * {
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-        
-        .stApp {
-            background: linear-gradient(135deg, #FFEBB3, #F7D358);
-        }
-        
-        .main-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        
-        .header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-        
-        .header-title {
-            font-size: 28px;
-            font-weight: 600;
-            color: #452c22;
-            margin-left: 1rem;
-        }
-        
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    
+    * {
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+    
+    /* 전체 배경 그라데이션 */
+    .stApp {
+        background: linear-gradient(135deg, #FFF8E1, #FFECB3);
+    }
+    
+    /* 컨테이너 스타일 */
+    .main-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    /* 카드 스타일 - 더 깔끔하고 일관된 디자인 */
+    .card {
+        background-color: #FFFFFF;
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        margin-bottom: 24px;
+        transition: all 0.3s ease;
+    }
+    
+    /* 카드 호버 효과 */
+    .card:hover {
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* 헤더 스타일 */
+    .header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #F0F0F0;
+    }
+    
+    /* 타이틀 스타일 - 더 현대적인 폰트 크기와 가중치 */
+    .title {
+        color: #333333;
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        letter-spacing: -0.02em;
+    }
+    
+    .subtitle {
+        color: #333333;
+        font-size: 36px;
+        font-weight: 700;
+        text-align: center;
+        margin: 16px 0;
+        letter-spacing: -0.02em;
+    }
+    
+    /* 라벨 스타일 */
+    .label {
+        color: #333333;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        margin-top: 24px;
+    }
+    
+    /* 버튼 스타일 - 더 현대적인 디자인 */
+    .stButton > button {
+        background-color: #FF9800;
+        color: white;
+        font-weight: 600;
+        border-radius: 12px;
+        padding: 12px 24px;
+        border: none;
+        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
+        transition: all 0.2s ease;
+        font-size: 16px;
+        letter-spacing: -0.01em;
+    }
+    
+    .stButton > button:hover {
+        background-color: #F57C00;
+        box-shadow: 0 6px 16px rgba(255, 152, 0, 0.3);
+        transform: translateY(-2px);
+    }
+    
+    /* 두 번째 버튼 스타일 (회색) */
+    .secondary-button > button {
+        background-color: #F5F5F5;
+        color: #555555;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .secondary-button > button:hover {
+        background-color: #EEEEEE;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    }
+    
+    /* 인풋 스타일 - 더 깔끔한 디자인 */
+    .stSelectbox > div[data-baseweb="select"] > div {
+        background-color: #F9F9F9;
+        border-radius: 12px;
+        border: 1px solid #EEEEEE;
+        padding: 8px 12px;
+        transition: all 0.2s ease;
+    }
+    
+    .stSelectbox > div[data-baseweb="select"] > div:focus-within {
+        border-color: #FF9800;
+        box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.1);
+    }
+    
+    .stTextArea > div > div > textarea {
+        background-color: #F9F9F9;
+        border-radius: 12px;
+        border: 1px solid #EEEEEE;
+        padding: 16px;
+        font-size: 16px;
+        transition: all 0.2s ease;
+    }
+    
+    .stTextArea > div > div > textarea:focus {
+        border-color: #FF9800;
+        box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.1);
+    }
+    
+    /* 결과 금액 스타일 - 더 강조된 디자인 */
+    .result-amount {
+        font-size: 56px;
+        font-weight: 800;
+        color: #FF9800;
+        text-align: center;
+        margin: 32px 0;
+        letter-spacing: -0.03em;
+    }
+    
+    /* 특별 요인 카드 */
+    .factor-card {
+        background-color: #FFF8E1;
+        border-radius: 12px;
+        padding: 24px;
+        margin: 24px 0;
+        border-left: 4px solid #FFB74D;
+    }
+    
+    /* 팁 카드 */
+    .tip-card {
+        background-color: #F5F5F5;
+        border-radius: 12px;
+        padding: 24px;
+        margin: 24px 0;
+        border-left: 4px solid #BDBDBD;
+    }
+    
+    /* 페이지 인디케이터 - 더 세련된 디자인 */
+    .page-indicator {
+        display: flex;
+        justify-content: center;
+        margin: 32px 0;
+    }
+    
+    .indicator-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: rgba(255, 152, 0, 0.3);
+        margin: 0 8px;
+        display: inline-block;
+        transition: all 0.2s ease;
+    }
+    
+    .active-dot {
+        background-color: #FF9800;
+        transform: scale(1.2);
+    }
+    
+    /* 푸터 */
+    .footer {
+        text-align: center;
+        color: #757575;
+        font-size: 14px;
+        opacity: 0.8;
+        margin-top: 48px;
+        padding-bottom: 24px;
+    }
+    
+    /* 태그 스타일 */
+    .tag {
+        display: inline-block;
+        background-color: #F5F5F5;
+        color: #555555;
+        border-radius: 20px;
+        padding: 6px 16px;
+        margin-right: 8px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
+    /* 카드 헤더 */
+    .card-header {
+        background-color: #FFF8E1;
+        border-radius: 16px 16px 0 0;
+        padding: 24px 32px;
+        margin: -32px -32px 24px -32px;
+        border-bottom: 1px solid #FFE0B2;
+    }
+    
+    /* 중앙 정렬 컨테이너 */
+    .center-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        text-align: center;
+        margin: 32px 0;
+        padding: 0 16px;
+    }
+    
+    /* 진행 표시줄 스타일 개선 */
+    .stProgress > div > div {
+        background-color: #FFB74D !important;
+    }
+    
+    /* 분석 세부 정보 항목 */
+    .analysis-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        background-color: #F9F9F9;
+        border-radius: 12px;
+        margin-bottom: 8px;
+    }
+    
+    .analysis-item-label {
+        font-weight: 600;
+        color: #555555;
+        margin-right: 8px;
+    }
+    
+    .analysis-item-value {
+        color: #333333;
+    }
+    
+    /* 반응형 디자인 개선 */
+    @media (max-width: 768px) {
         .card {
-            background-color: white;
-            border-radius: 20px;
-            padding: 3rem;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-            margin: 0 auto;
-            max-width: 900px;
-        }
-        
-        .section-title {
-            font-size: 36px;
-            font-weight: 600;
-            color: #452c22;
-            margin-bottom: 1rem;
-        }
-        
-        .center-text {
-            text-align: center;
-        }
-        
-        .subtitle {
-            color: #452c22;
-            font-size: 24px;
-            font-weight: 500;
-            margin: 1.5rem 0;
-        }
-        
-        .tag {
-            display: inline-block;
-            background-color: #F5F5F5;
-            color: #666666;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            margin-right: 0.5rem;
-            font-weight: 500;
-            font-size: 16px;
-        }
-        
-        .result-amount {
-            font-size: 54px;
-            font-weight: 700;
-            color: #E8A02F;
-            text-align: center;
-            margin: 1.5rem 0;
+            padding: 24px;
         }
         
         .card-header {
-            background-color: #FFF8E1;
-            border-radius: 20px 20px 0 0;
-            padding: 2rem;
-            margin: -3rem -3rem 2rem -3rem;
+            padding: 20px 24px;
+            margin: -24px -24px 20px -24px;
         }
         
-        .details-section {
-            background-color: #F9F9F9;
-            border-radius: 15px;
-            padding: 2rem;
-            margin: 2rem 0;
+        .title {
+            font-size: 28px;
         }
         
-        .factors-section {
-            background-color: #FFF8E1;
-            border-radius: 15px;
-            padding: 2rem;
-            margin: 2rem 0;
+        .subtitle {
+            font-size: 28px;
         }
         
-        .tip-section {
-            background-color: #F0F0F0;
-            border-radius: 15px;
-            padding: 2rem;
-            margin: 2rem 0;
+        .result-amount {
+            font-size: 42px;
         }
-        
-        .details-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: #452c22;
-            margin-bottom: 1.5rem;
-        }
-        
-        .details-item {
-            font-size: 16px;
-            color: #666666;
-            margin-bottom: 0.5rem;
-        }
-        
-        .page-indicator {
-            display: flex;
-            justify-content: center;
-            margin: 2rem 0;
-        }
-        
-        .indicator-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background-color: rgba(232, 160, 47, 0.3);
-            margin: 0 8px;
-            display: inline-block;
-        }
-        
-        .active-dot {
-            background-color: #E8A02F;
-        }
-        
-        .footer {
-            text-align: center;
-            padding: 1rem;
-            color: #6D4C41;
-            opacity: 0.7;
-            font-size: 14px;
-            margin-top: 2rem;
-        }
-        
-        /* 버튼 스타일 */
-        .stButton > button {
-            background-color: #E8A02F;
-            color: white;
-            font-weight: 600;
-            border-radius: 30px;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            transition: all 0.2s;
-        }
-        
-        .stButton > button:hover {
-            background-color: #D4901A;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* 이전 버튼 스타일 */
-        .secondary-btn > button {
-            background-color: #F0F0F0;
-            color: #666666;
-            border: 1px solid #E0E0E0;
-        }
-        
-        .secondary-btn > button:hover {
-            background-color: #E0E0E0;
-        }
-        
-        /* 입력 필드 스타일 */
-        .stSelectbox > div > div > div {
-            background-color: white;
-            border: 1px solid #E0E0E0;
-            border-radius: 10px;
-            padding: 5px;
-        }
-        
-        .stTextArea > div > div > textarea {
-            border: 1px solid #E0E0E0;
-            border-radius: 10px;
-            padding: 15px;
-        }
-        
-        /* 프로그레스 바 색상 */
-        .stProgress > div > div > div > div {
-            background-color: #E8A02F;
-        }
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# 봉투 + 하트 SVG
+# 개선된 SVG 이미지 렌더링 함수
+def render_svg(svg_code):
+    b64 = base64.b64encode(svg_code.encode("utf-8")).decode("utf-8")
+    html = f'<img src="data:image/svg+xml;base64,{b64}" style="max-width: 100%;">'
+    return html
+
+# 개선된 봉투 + 하트 SVG 코드
 def get_envelope_svg(width=300, height=180):
     svg = f"""
     <svg width="{width}" height="{height}" viewBox="0 0 300 180" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.15"/>
-            </filter>
-            <linearGradient id="heartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#FF6B6B" />
-                <stop offset="100%" stop-color="#FF8E8E" />
-            </linearGradient>
-        </defs>
-        <rect x="0" y="0" width="300" height="180" rx="10" ry="10" fill="#FFFFFF" stroke="#EEEEEE" stroke-width="3" filter="url(#shadow)" />
-        <path d="M0,0 L150,75 L300,0" fill="none" stroke="#EEEEEE" stroke-width="3" />
-        <path d="M150,105 C150,80 135,70 125,70 C110,70 102,90 102,105 C102,120 115,135 150,155 C185,135 198,120 198,105 C198,90 190,70 175,70 C165,70 150,80 150,105 Z" fill="url(#heartGradient)" />
+      <defs>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.15"/>
+        </filter>
+        <linearGradient id="envelopeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FFFFFF" />
+          <stop offset="100%" stop-color="#F5F5F5" />
+        </linearGradient>
+        <linearGradient id="heartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FF7043" />
+          <stop offset="100%" stop-color="#FF9800" />
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="300" height="180" rx="16" ry="16" fill="url(#envelopeGradient)" stroke="#EEEEEE" stroke-width="2" filter="url(#shadow)" />
+      <path d="M0,0 L150,75 L300,0" fill="none" stroke="#EEEEEE" stroke-width="2" />
+      <path d="M150,105 C150,80 135,70 125,70 C110,70 102,90 102,105 C102,120 115,135 150,155 C185,135 198,120 198,105 C198,90 190,70 175,70 C165,70 150,80 150,105 Z" fill="url(#heartGradient)" />
     </svg>
     """
     return svg
 
-# 페이지 인디케이터
+# 페이지 인디케이터 - 개선된 버전
 def show_page_indicator(current_page, total_pages=3):
-    indicator_html = '<div class="page-indicator">'
+    html = '<div class="page-indicator">'
     for i in range(1, total_pages + 1):
         if i == current_page:
-            indicator_html += '<div class="indicator-dot active-dot"></div>'
+            html += '<div class="indicator-dot active-dot"></div>'
         else:
-            indicator_html += '<div class="indicator-dot"></div>'
-    indicator_html += '</div>'
-    st.markdown(indicator_html, unsafe_allow_html=True)
+            html += '<div class="indicator-dot"></div>'
+    html += '</div>'
+    st.markdown(html, unsafe_allow_html=True)
 
-# 대화 분석 함수
+# 대화 분석 함수 - 로직은 동일하게 유지
 def analyze_conversation(conversation, event_type, relationship):
     # 분석 로직
     
@@ -385,12 +475,29 @@ def analyze_conversation(conversation, event_type, relationship):
         }
     }
 
-# 메인 함수
+# 메인 함수 - 개선된 레이아웃
 def main():
     # 스타일 적용
-    set_page_style()
+    set_custom_style()
     
-    # 페이지 표시
+    # 전체 컨테이너 시작
+    st.markdown('<div class="main-container">', unsafe_allow_html=True)
+    
+    # 헤더 (2, 3페이지에만 표시)
+    if st.session_state.page > 1:
+        st.markdown('<div class="header">', unsafe_allow_html=True)
+        col1, col2 = st.columns([1, 5])
+        with col1:
+            envelope_svg = get_envelope_svg(width=60, height=36)
+            st.markdown(render_svg(envelope_svg), unsafe_allow_html=True)
+        with col2:
+            st.markdown('<h2 style="color: #333333; font-size: 24px; font-weight: 700; margin-top: 0;">축의금 책정기</h2>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 페이지 인디케이터
+    show_page_indicator(st.session_state.page)
+    
+    # 페이지별 내용 표시
     if st.session_state.page == 1:
         show_start_page()
     elif st.session_state.page == 2:
@@ -400,84 +507,81 @@ def main():
     
     # 푸터
     st.markdown('<div class="footer">© 2025 축의금 책정기</div>', unsafe_allow_html=True)
+    
+    # 전체 컨테이너 종료
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# 시작 페이지
+# 시작 페이지 - 개선된 디자인
 def show_start_page():
-    # 페이지 인디케이터
-    show_page_indicator(1)
+    # 중앙 정렬을 위한 컨테이너
+    st.markdown('<div class="center-container">', unsafe_allow_html=True)
     
-    # 콘텐츠 컨테이너
-    st.markdown('<div class="center-text">', unsafe_allow_html=True)
-    
-    # 봉투 이미지
-    st.markdown(f'<div style="text-align:center; margin:40px 0;">{get_envelope_svg(width=500, height=300)}</div>', unsafe_allow_html=True)
+    # 봉투 아이콘 - 더 세련된 디자인
+    envelope_svg = get_envelope_svg(width=280, height=180)
+    st.markdown(render_svg(envelope_svg), unsafe_allow_html=True)
     
     # 서브타이틀
-    st.markdown('<p class="subtitle" style="font-size:40px; text-align:center; margin:30px 0;">당신의 마음을 금액으로 표현해드립니다</p>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle">당신의 마음을 금액으로 표현해드립니다</p>', unsafe_allow_html=True)
     
-    # 시작 버튼
-    col1, col2, col3 = st.columns([1,1,1])
-    with col2:
-        if st.button("축의금 책정하기", key="start_btn", use_container_width=True):
-            next_page()
+    # 간단한 설명 추가
+    st.markdown('<p style="color: #757575; font-size: 18px; text-align: center; margin-bottom: 32px;">대화 내용을 분석하여 최적의 축의금 금액을 추천해드립니다</p>', unsafe_allow_html=True)
+    
+    # 시작하기 버튼
+    if st.button('축의금 책정하기', key='start_btn'):
+        next_page()
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# 입력 페이지
+# 입력 페이지 - 개선된 레이아웃
 def show_input_page():
-    # 헤더
-    st.markdown('<div class="header">', unsafe_allow_html=True)
-    st.markdown(f'<span>{get_envelope_svg(width=40, height=24)}</span><span class="header-title">축의금 책정기</span>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # 페이지 인디케이터
-    show_page_indicator(2)
-    
-    # 카드 콘텐츠
+    # 카드 시작
     st.markdown('<div class="card">', unsafe_allow_html=True)
     
-    st.markdown('<h2 class="section-title">정보 입력</h2>', unsafe_allow_html=True)
-    st.markdown('<p style="color:#666; margin-bottom:30px;">축의금 분석을 위한 정보를 입력해주세요</p>', unsafe_allow_html=True)
+    # 카드 헤더
+    st.markdown('<div class="card-header">', unsafe_allow_html=True)
+    st.markdown('<h2 class="title">정보 입력</h2>', unsafe_allow_html=True)
+    st.markdown('<p style="color: #757575; font-size: 16px;">축의금 분석을 위한 정보를 입력해주세요</p>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # 행사 유형
-    st.markdown('<p style="font-size:24px; font-weight:600; color:#452c22; margin-top:30px; margin-bottom:10px;">행사 유형</p>', unsafe_allow_html=True)
+    st.markdown('<p class="label">행사 유형</p>', unsafe_allow_html=True)
     event_type = st.selectbox(
         "",
         ["결혼식", "돌잔치", "백일", "집들이", "생일", "승진", "개업", "출산"],
-        index=0 if st.session_state.event_type == "결혼식" else ["결혼식", "돌잔치", "백일", "집들이", "생일", "승진", "개업", "출산"].index(st.session_state.event_type),
         label_visibility="collapsed"
     )
     
     # 관계
-    st.markdown('<p style="font-size:24px; font-weight:600; color:#452c22; margin-top:30px; margin-bottom:10px;">상대방과의 관계</p>', unsafe_allow_html=True)
+    st.markdown('<p class="label">상대방과의 관계</p>', unsafe_allow_html=True)
     relationship = st.selectbox(
         "",
         ["친구", "회사동료", "선후배", "가족/친척", "지인", "SNS친구"],
-        index=0 if st.session_state.relationship == "친구" else ["친구", "회사동료", "선후배", "가족/친척", "지인", "SNS친구"].index(st.session_state.relationship),
         label_visibility="collapsed"
     )
     
     # 대화 내용
-    st.markdown('<p style="font-size:24px; font-weight:600; color:#452c22; margin-top:30px; margin-bottom:10px;">대화 내용</p>', unsafe_allow_html=True)
+    st.markdown('<p class="label">대화 내용</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: #757575; font-size: 14px; margin-bottom: 8px;">카카오톡, 메시지 등의 대화 내용을 복사해서 붙여넣으세요</p>', unsafe_allow_html=True)
     conversation = st.text_area(
         "",
-        value=st.session_state.conversation,
         height=200,
-        placeholder="카카오톡, 메시지 등의 대화 내용을 복사해서 붙여넣으세요...",
+        placeholder="여기에 대화 내용을 붙여넣으세요...",
         label_visibility="collapsed"
     )
     
-    # 버튼 영역
+    # 버튼 영역 - 개선된 레이아웃
+    st.markdown('<div style="display: flex; gap: 16px; margin-top: 32px;">', unsafe_allow_html=True)
+    
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown('<div class="secondary-btn">', unsafe_allow_html=True)
-        if st.button("← 이전", key="prev_btn_input", use_container_width=True):
+        st.markdown('<div class="secondary-button">', unsafe_allow_html=True)
+        if st.button("← 이전", key="prev_btn_input"):
             prev_page()
         st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
-        if st.button("분석하기 →", key="next_btn_input", use_container_width=True):
+        if st.button("분석하기 →", key="next_btn_input"):
             if not conversation:
                 st.error("대화 내용을 입력해주세요.")
             else:
@@ -492,8 +596,10 @@ def show_input_page():
                     next_page()
     
     st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# 결과 페이지
+# 결과 페이지 - 개선된 디자인
 def show_result_page():
     if not st.session_state.analysis_results:
         st.error("분석 결과가 없습니다. 처음부터 다시 시작해주세요.")
@@ -503,84 +609,79 @@ def show_result_page():
     
     results = st.session_state.analysis_results
     
-    # 헤더
-    st.markdown('<div class="header">', unsafe_allow_html=True)
-    st.markdown(f'<span>{get_envelope_svg(width=40, height=24)}</span><span class="header-title">축의금 책정기</span>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # 페이지 인디케이터
-    show_page_indicator(3)
-    
-    # 결과 카드
+    # 카드 시작
     st.markdown('<div class="card">', unsafe_allow_html=True)
     
     # 카드 헤더
     st.markdown('<div class="card-header">', unsafe_allow_html=True)
-    st.markdown('<h2 class="section-title">분석 결과</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="title">분석 결과</h2>', unsafe_allow_html=True)
     
-    # 태그 표시
-    st.markdown(
-        f'<span class="tag">{st.session_state.event_type}</span><span class="tag">{st.session_state.relationship}</span>', 
-        unsafe_allow_html=True
-    )
+    # 태그 표시 - 개선된 레이아웃
+    st.markdown(f'<div style="display: flex; gap: 8px; margin-top: 12px;">', unsafe_allow_html=True)
+    st.markdown(f'<span class="tag">{st.session_state.event_type}</span>', unsafe_allow_html=True)
+    st.markdown(f'<span class="tag">{st.session_state.relationship}</span>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # 결과 표시 영역
-    col1, col2 = st.columns([1, 3])
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 결과 표시 영역 - 개선된 레이아웃
+    col1, col2 = st.columns([1, 2])
     
     with col1:
-        # 봉투 아이콘
-        st.markdown(get_envelope_svg(width=150, height=90), unsafe_allow_html=True)
+        # 봉투 아이콘 - 더 세련된 디자인
+        envelope_svg = get_envelope_svg(width=150, height=90)
+        st.markdown(render_svg(envelope_svg), unsafe_allow_html=True)
     
     with col2:
-        # 결과 금액
+        # 결과 금액 - 더 강조된 디자인
         st.markdown(f'<div class="result-amount">{results["amount"]:,}원</div>', unsafe_allow_html=True)
     
-    # 친밀도 점수
-    st.markdown(f'<p style="color:#452c22; font-size:20px; font-weight:600; margin-top:30px;">친밀도 점수: {results["intimacy_score"]}/100</p>', unsafe_allow_html=True)
-    st.progress(results["intimacy_score"] / 100)
+    # 친밀도 점수 - 개선된 디자인
+    st.markdown(f'<p style="color: #333333; font-size: 18px; font-weight: 600; margin-top: 24px; margin-bottom: 8px;">친밀도 점수: {results["intimacy_score"]}/100</p>', unsafe_allow_html=True)
+    progress = results["intimacy_score"] / 100
+    st.progress(progress)
     
-    # 분석 세부 정보
-    st.markdown('<div class="details-section">', unsafe_allow_html=True)
-    st.markdown('<h3 class="details-title">분석 세부 정보</h3>', unsafe_allow_html=True)
+    # 분석 세부 정보 - 개선된 레이아웃
+    st.markdown('<h3 style="color: #333333; font-size: 20px; font-weight: 700; margin-top: 32px; margin-bottom: 16px;">분석 세부 정보</h3>', unsafe_allow_html=True)
     
-    # 2단 컬럼으로 표시
+    # 분석 세부 정보를 카드 형태로 표시
+    for key, value in results["analysis_details"].items():
+        st.markdown(f'''
+        <div class="analysis-item">
+            <span class="analysis-item-label">{key}:</span>
+            <span class="analysis-item-value">{value}</span>
+        </div>
+        ''', unsafe_allow_html=True)
+    
+    # 특별 요인 - 개선된 디자인
+    if results["special_factors"]:
+        st.markdown('<div class="factor-card">', unsafe_allow_html=True)
+        st.markdown('<p style="color: #F57C00; font-size: 18px; font-weight: 600; margin-bottom: 16px;">✨ 특별 가산 요인</p>', unsafe_allow_html=True)
+        for factor in results["special_factors"]:
+            st.markdown(f'<p style="color: #555555; font-size: 16px; margin-bottom: 8px;">• {factor}</p>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 팁 박스 - 개선된 디자인
+    st.markdown('<div class="tip-card">', unsafe_allow_html=True)
+    st.markdown(f'<p style="color: #555555; font-size: 16px;">💡 {results["funny_tip"]}</p>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 버튼 영역 - 개선된 레이아웃
+    st.markdown('<div style="display: flex; justify-content: center; gap: 16px; margin-top: 32px;">', unsafe_allow_html=True)
+    
     col1, col2 = st.columns(2)
     
     with col1:
-        for key, value in list(results["analysis_details"].items())[:3]:
-            st.markdown(f'<p class="details-item">• {key}: {value}</p>', unsafe_allow_html=True)
-    
-    with col2:
-        for key, value in list(results["analysis_details"].items())[3:]:
-            st.markdown(f'<p class="details-item">• {key}: {value}</p>', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # 특별 요인
-    if results["special_factors"]:
-        st.markdown('<div class="factors-section">', unsafe_allow_html=True)
-        st.markdown('<h3 style="color:#D4A017; font-size:20px; font-weight:600; margin-bottom:15px;">✨ 특별 가산 요인</h3>', unsafe_allow_html=True)
-        for factor in results["special_factors"]:
-            st.markdown(f'<p class="details-item">• {factor}</p>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    # 팁 박스
-    st.markdown('<div class="tip-section">', unsafe_allow_html=True)
-    st.markdown(f'<p class="details-item">💡 {results["funny_tip"]}</p>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # 버튼 영역
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col1:
-        st.markdown('<div class="secondary-btn">', unsafe_allow_html=True)
-        if st.button("← 다시 분석", key="prev_btn_result", use_container_width=True):
+        st.markdown('<div class="secondary-button">', unsafe_allow_html=True)
+        if st.button("← 다시 분석", key="prev_btn_result"):
             prev_page()
         st.markdown('</div>', unsafe_allow_html=True)
     
-    with col3:
-        if st.button("결과 저장", key="save_btn", use_container_width=True):
+    with col2:
+        if st.button("결과 저장하기", key="save_btn"):
             st.success("결과가 저장되었습니다!")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
 
