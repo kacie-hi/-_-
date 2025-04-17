@@ -529,7 +529,7 @@ def show_start_page():
          overflow: hidden;
          white-space: nowrap;
          border-right: 2px solid #452c22;
-         font-size: 20px !important; 
+         font-size: 26px !important; 
          font-weight: 500;
          color: #452c22;
          width: 0;
@@ -537,7 +537,7 @@ def show_start_page():
        }
        @keyframes typing {
            from { width: 0 }
-           to { width: 28ch }
+           to { width: 35ch }
        }
        </style>
        """, unsafe_allow_html=True)
