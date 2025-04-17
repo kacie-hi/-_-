@@ -529,7 +529,7 @@ def show_start_page():
          overflow: hidden;
          white-space: nowrap;
          border-right: 2px solid #452c22;
-         font-size: 28px !important; 
+         font-size: 20px !important; 
          font-weight: 500;
          color: #452c22;
          width: 0;
